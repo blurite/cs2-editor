@@ -43,8 +43,8 @@ fun setIcons(stage: Stage) {
 	//Toolkit.getDefaultToolkit().getImage("src/resources/busylogo.jpg");
 	var image: Image? = null
 	try {
-		image = ImageIO.read(DummyMain::class.java.getResourceAsStream("/images/icon.png"))
-		stage.icons.add(javafx.scene.image.Image(DummyMain::class.java.getResourceAsStream("/images/icon.png")))
+		image = ImageIO.read(Editor::class.java.getResourceAsStream("/images/icon.png"))
+		stage.icons.add(javafx.scene.image.Image(Editor::class.java.getResourceAsStream("/images/icon.png")))
 	} catch (e: IOException) {
 		e.printStackTrace()
 	}
