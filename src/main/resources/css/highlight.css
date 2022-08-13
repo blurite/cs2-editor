@@ -37,11 +37,11 @@
 .styled-text-area .lineno {
     -fx-font-style: normal;
     -fx-fill: #b7b7b7;
-    -fx-background-color: #21252B;
+    -fx-background-color: #1E1F22;
     -fx-pref-width: 50px;
     -fx-alignment: center-left;
     -fx-pref-height: 50px;
-    -fx-font-size: 18px;
+    -fx-font-size: 14px;
     -fx-cursor: default;
 }
 .styled-text-area .var {
