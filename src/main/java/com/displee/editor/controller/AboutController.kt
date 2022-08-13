@@ -8,21 +8,20 @@ import java.util.*
 
 class AboutController : Initializable {
 
-	@FXML
-	private lateinit var textArea: TextArea
+    @FXML
+    private lateinit var textArea: TextArea
 
-	override fun initialize(location: URL?, resources: ResourceBundle?) {
-		textArea.text = """
-			Displee's CS2 editor 1.1
-			
-			
-			This application has been created by Displee
-			and is powered by https://rscedit.io/.
-			Full credits for the CS2 compiler/decompiler goes to Vincent.
-			
-			
-			Copyright (c) 2020, rscedit.
-			""".trimIndent()
-	}
-
+    override fun initialize(location: URL?, resources: ResourceBundle?) {
+        textArea.text = """
+        Displee's CS2 editor 1.1
+        
+        
+        This application has been created by Displee
+        and is powered by https://rscedit.io/.
+        Full credits for the CS2 compiler/decompiler goes to Vincent.
+        
+        
+        Copyright (c) 2020, rscedit.
+        """.trimIndent()
+    }
 }
