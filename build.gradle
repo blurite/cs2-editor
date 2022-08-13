@@ -64,7 +64,7 @@ tasks.withType(JavaCompile) {
 jar {
     destinationDirectory = file("$rootDir")
     manifest {
-        attributes 'Main-Class': 'com.displee.editor.Editor'
+        attributes 'Main-Class': 'com.displee.editor.EditorKt'
     }
     from {
         configurations.runtimeClasspath.collect {
