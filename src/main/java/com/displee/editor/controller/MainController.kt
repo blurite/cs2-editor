@@ -348,9 +348,13 @@ class MainController : Initializable {
 				try {
 					CS2Reader.readCS2ScriptNewFormat(data, id, config.unscrambled, config.disableSwitches, config.disableLongs)
 				} catch(e: Throwable) {
-					error++
-					if (error >= 2) {
-						break
+//					error++
+//					if (error >= 2) {
+//						break
+//					}
+					if (config.version == 179) {
+						println(e)
+						println("id $id")
 					}
 				}
 			}
