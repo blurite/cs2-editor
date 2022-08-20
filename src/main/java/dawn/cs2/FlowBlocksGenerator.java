@@ -599,8 +599,6 @@ public class FlowBlocksGenerator {
                 //TODO: Don't infer boolean args? they are sometimes passed to function that also take int
                 assert info.getArgumentTypes()[i].isCompatible(expr.getType());
 
-//                if (!CS2.OSRS)
-                info.getArgumentTypes()[i] = expr.getType();
                 type = expr.getType();
                 if (isOpCodeCall && CS2ConstantsKt.DEBUG) {
                     try {
