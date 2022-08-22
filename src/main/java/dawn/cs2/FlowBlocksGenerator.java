@@ -2,6 +2,7 @@ package dawn.cs2;
 
 import dawn.cs2.ast.*;
 import dawn.cs2.instructions.*;
+import dawn.cs2.repo.DbTableTypeRepo;
 import dawn.cs2.util.FunctionInfo;
 import dawn.cs2.util.IOUtils;
 import dawn.cs2.util.OpcodeUtils;
@@ -471,6 +472,17 @@ public class FlowBlocksGenerator {
         else if (opcode == 26513 || opcode == 26514 || opcode == 26515 || opcode == 26516) {
             //return unknown type, there is only 1 stack anyway.
             return new FunctionInfo(fi.getName(), opcode, new CS2Type[]{CS2Type.INT, CS2Type.INT}, CS2Type.UNKNOWN, new String[]{"arg0", "arg1"}, false);
+        } else if (opcode == 7502) {
+            final var field = stack.pop();
+
+            final var column = ((IntExpressionNode) stack.peek()).getData();
+            final var tupleIndex = (column & 0xf) - 1;
+            final var columnVar = stack.pop();
+
+            final var row = stack.pop();
+
+            final var types = DbTableTypeRepo.INSTANCE.getMappings().get(column);
+            return new FunctionInfo(fi.getName(), opcode, new CS2Type[]{CS2Type.DB_ROW, CS2Type.DB_COLUMN, CS2Type.DB_FIELD}, CS2Type.of(Arrays.asList(types)), types, fi.getArgumentNames(), false);
         }
 
         throw new DecompilerException("Unhandled special opcode:" + opcode);
