@@ -171,7 +171,7 @@ public class CS2ScriptParser {
     }
 
     //args dynamic = look for last string literal arg
-    //return type dynamic = datamap? second char arg ELSE attr id lookup
+    //return type dynamic = enum? second char arg ELSE attr id lookup
 
     private FunctionInfo resolveCall(String name, List<ExpressionNode> args) {
         List<CS2Type> signature = new ArrayList<>();

@@ -322,7 +322,7 @@ public class FlowBlocksGenerator {
 //                                    break;
 //                                }
                         }
-                        dynamicArgTypes |= opcode == 3400 || opcode == 3409 || opcode == 3412 || opcode == 3414; //datamap contains/lookup value checks
+                        dynamicArgTypes |= opcode == 3400 || opcode == 3409 || opcode == 3412 || opcode == 3414; //enum contains/lookup value checks
                         if (!dynamicArgTypes) {
                             analyzeActualArgOrder(info, stack.copy());
                         }
@@ -431,15 +431,15 @@ public class FlowBlocksGenerator {
      */
     private FunctionInfo analyzeSpecialCall(FlowBlock block, CS2Stack stack, int opcode, FunctionInfo fi) {
         if (opcode == 3408) {
-            //DataMap<K, V> lookup, this is a 'generic' method where the returned type depends on the map definition.
+            //Enum<K, V> lookup, this is a 'generic' method where the returned type depends on the map definition.
             //2 chars are also supplied to this call representing the expected Key and Value types
-            //If these do not match the DataMap definition a RuntimeException will be thrown on execution
+            //If these do not match the Enum definition a RuntimeException will be thrown on execution
             ExpressionNode[] args = new ExpressionNode[4];
             for (int i = 3; i >= 0; i--)
                 args[i] = stack.pop();
             if (!(args[1] instanceof IntExpressionNode) || !(args[0] instanceof IntExpressionNode))
                 throw new DecompilerException("Dynamic type");
-            return new FunctionInfo(fi.getName(), opcode, new CS2Type[]{CS2Type.CHAR, CS2Type.CHAR, CS2Type.DATAMAP, CS2Type.forJagexDesc((char) ((IntExpressionNode) args[0]).getData())}, CS2Type.forJagexDesc((char) ((IntExpressionNode) args[1]).getData()), fi.getArgumentNames(), false);
+            return new FunctionInfo(fi.getName(), opcode, new CS2Type[]{CS2Type.CHAR, CS2Type.CHAR, CS2Type.ENUM, CS2Type.forJagexDesc((char) ((IntExpressionNode) args[0]).getData())}, CS2Type.forJagexDesc((char) ((IntExpressionNode) args[1]).getData()), fi.getArgumentNames(), false);
         } else if (opcode == 4019) { //math function
             ExpressionNode[] args = new ExpressionNode[2];
             for (int i = 1; i >= 0; i--)
@@ -595,7 +595,7 @@ public class FlowBlocksGenerator {
 //                    }
             }
             if (staticArgTypes && type == CS2Type.INT && expr.getType() != CS2Type.BOOLEAN && type != expr.getType() && expr.getType() != CS2Type.UNKNOWN) {
-                //infer (change) definition, cant do this for ALL opcode calls because some are dynamic though!!! eg datamap... script hooks, but could for most
+                //infer (change) definition, cant do this for ALL opcode calls because some are dynamic though!!! eg enum... script hooks, but could for most
                 //TODO: Don't infer boolean args? they are sometimes passed to function that also take int
                 assert info.getArgumentTypes()[i].isCompatible(expr.getType());
 

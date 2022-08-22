@@ -654,32 +654,40 @@ class MainController : Initializable {
         var timeFormat = SimpleDateFormat("HH:mm:ss")
         val VAR_LIST = mutableListOf<String>()
         val KEYWORDS = arrayOf("string", "string[]", "boolean", "break", "case", "char", "continue", "default", "do", "else", "for", "goto", "if", "int", "int[]", "long", "long[]", "return", "switch", "this", "void", "while", "true", "false", "null")
+        
         private val BI_CLASSES = arrayOf(
             FONTMETRICS,
             SPRITE,
             MODEL,
-            MIDI,
-            DATAMAP,
-            ATTRIBUTEMAP,
+            ENUM,
+            STRUCT,
             CONTAINER,
             WIDGET_PTR,
             LOCATION,
+            ITEM_ID,
             ITEM,
+            NAMED_ITEM,
             COLOR,
-            IDENTIKIT,
             ANIM,
             MAPID,
             GRAPHIC,
             SKILL,
             NPCDEF,
-            QCPHRASE,
-            CHATCAT,
             TEXTURE,
-            STANCE,
-            SPELL,
             CATEGORY,
             SOUNDEFFECT,
-            CALLBACK
+            CALLBACK,
+            DB_ROW,
+            DB_COLUMN,
+            DB_FIELD,
+            DB_TABLE,
+            OBJECT,
+            MAP_ELEMENT,
+            AREA,
+            LOCSHAPE,
+            NPCUID,
+            OVERLAY_INTERFACE,
+            TOPLEVEL_INTERFACE
         )
 
         private val KEYWORD_PATTERN = "\\b(" + java.lang.String.join("|", *KEYWORDS.map { it.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()) + ")\\b"
