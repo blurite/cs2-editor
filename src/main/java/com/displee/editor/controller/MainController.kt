@@ -42,6 +42,9 @@ import java.time.Instant
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.div
+import kotlin.io.path.writeText
 
 class MainController : Initializable {
 
@@ -49,7 +52,7 @@ class MainController : Initializable {
     private lateinit var openMenuItem: MenuItem
 
     @FXML
-    private lateinit var saveMenuItem: MenuItem
+    private lateinit var saveDecompiled: MenuItem
 
     @FXML
     private lateinit var buildMenuItem: MenuItem
@@ -115,8 +118,8 @@ class MainController : Initializable {
         openMenuItem.setOnAction {
             openCache()
         }
-        saveMenuItem.setOnAction {
-            compileScript()
+        saveDecompiled.setOnAction {
+            saveScript()
         }
         buildMenuItem.setOnAction {
             packScript()
@@ -337,7 +340,7 @@ class MainController : Initializable {
         Platform.runLater {
             scriptList.isDisable = false
             newMenuItem.isDisable = false
-            saveMenuItem.isDisable = false
+            saveDecompiled.isDisable = false
             buildMenuItem.isDisable = false
         }
     }
@@ -550,6 +553,18 @@ class MainController : Initializable {
         return printer.toString()
     }
 
+    @OptIn(ExperimentalPathApi::class)
+    private fun saveScript() {
+        val script = currentScript ?: return
+        val activeCodeArea = activeCodeArea()
+
+        val outputDir = DirectoryChooser().showDialog(mainWindow()) ?: return
+        val outputFile = outputDir.toPath() / "${script.scriptID}.cs2"
+        outputFile.writeText(activeCodeArea.text)
+
+        println("Saved script ${script.scriptID}.cs2")
+    }
+
     private fun compileScript() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
@@ -629,7 +644,7 @@ class MainController : Initializable {
         scriptList.items.clear()
         scriptList.isDisable = true
         newMenuItem.isDisable = true
-        saveMenuItem.isDisable = true
+        saveDecompiled.isDisable = true
         buildMenuItem.isDisable = true
     }
 
@@ -654,7 +669,7 @@ class MainController : Initializable {
         var timeFormat = SimpleDateFormat("HH:mm:ss")
         val VAR_LIST = mutableListOf<String>()
         val KEYWORDS = arrayOf("string", "string[]", "boolean", "break", "case", "char", "continue", "default", "do", "else", "for", "goto", "if", "int", "int[]", "long", "long[]", "return", "switch", "this", "void", "while", "true", "false", "null")
-        
+
         private val BI_CLASSES = arrayOf(
             FONTMETRICS,
             SPRITE,
