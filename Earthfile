@@ -1,4 +1,4 @@
-FROM amazoncorretto:8
+FROM amazoncorretto:11
 
 WORKDIR cs2-editor
 
