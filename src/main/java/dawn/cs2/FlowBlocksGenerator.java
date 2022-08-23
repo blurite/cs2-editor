@@ -464,24 +464,20 @@ public class FlowBlocksGenerator {
 
             return new FunctionInfo(fi.getName(), opcode, fi.getArgumentTypes(), CS2Type.attrTypes.get(((IntExpressionNode) arg).getData()), fi.getArgumentNames(), false);
         }
-        //Just gonna assume normal flow... calling these opcodes might do unknown things to the stack!!
-//        else if (opcode == 6509)
-//            throw new DecompilerException("opcode 6509 not decompileable");
-//        else if (opcode == 6701)
-//            throw new DecompilerException("opcode 6701 not decompileable");
         else if (opcode == 26513 || opcode == 26514 || opcode == 26515 || opcode == 26516) {
             //return unknown type, there is only 1 stack anyway.
             return new FunctionInfo(fi.getName(), opcode, new CS2Type[]{CS2Type.INT, CS2Type.INT}, CS2Type.UNKNOWN, new String[]{"arg0", "arg1"}, false);
         } else if (opcode == 7502) {
-            final var field = stack.pop();
-
-            final var column = ((IntExpressionNode) stack.peek()).getData();
+            stack.pop(); // field
+            final var column = ((IntExpressionNode) stack.pop()).getData();
             final var tupleIndex = (column & 0xf) - 1;
-            final var columnVar = stack.pop();
+            stack.pop(); // row
 
-            final var row = stack.pop();
-
-            final var types = DbTableTypeRepo.INSTANCE.getMappings().get(column);
+            var types = DbTableTypeRepo.INSTANCE.getMappings().get(column);
+            if (tupleIndex != -1) {
+                types = new CS2Type[]{types[tupleIndex]};
+            }
+            
             return new FunctionInfo(fi.getName(), opcode, new CS2Type[]{CS2Type.DB_ROW, CS2Type.DB_COLUMN, CS2Type.DB_FIELD}, CS2Type.of(Arrays.asList(types)), types, fi.getArgumentNames(), false);
         }
 
