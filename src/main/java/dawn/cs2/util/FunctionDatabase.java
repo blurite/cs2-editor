@@ -10,6 +10,7 @@ public class FunctionDatabase {
 
     private FunctionInfo[] info;
     private Map<String, List<FunctionInfo>> lookup = new HashMap<>();
+    private String source;
 
     public FunctionDatabase(InputStream stream, boolean isScript, Map<Integer, Integer> scramble) {
         this.info = new FunctionInfo[40000];
@@ -17,6 +18,7 @@ public class FunctionDatabase {
     }
 
     public FunctionDatabase(String s, boolean isScript, Map<Integer, Integer> scramble) {
+        this.source = s;
         this.info = new FunctionInfo[40000];
         this.readDatabase(new StringReader(s), isScript, scramble);
     }
@@ -94,5 +96,8 @@ public class FunctionDatabase {
     public List<FunctionInfo> getByName(String symbol) {
         return lookup.getOrDefault(symbol, Collections.emptyList());
     }
-
+    
+    public String getSource() {
+        return source;
+    }
 }

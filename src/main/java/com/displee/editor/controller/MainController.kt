@@ -2,7 +2,6 @@ package com.displee.editor.controller
 
 import com.displee.cache.CacheLibrary
 import com.displee.cache.ProgressListener
-import com.displee.editor.config.ScriptConfiguration
 import com.displee.editor.notifyChooseScriptId
 import com.displee.editor.ui.alert.Notification
 import com.displee.editor.ui.autocomplete.AutoCompleteItem
@@ -100,7 +99,6 @@ class MainController : Initializable {
     lateinit var cacheLibrary: CacheLibrary
     private lateinit var scripts: IntArray
 
-    private val scriptConfiguration = ScriptConfiguration("/cs2/opcode/database/osrs.ini", false, true)
     private lateinit var opcodesDatabase: FunctionDatabase
     private lateinit var scriptsDatabase: FunctionDatabase
 
@@ -321,7 +319,7 @@ class MainController : Initializable {
         status("guessing script configuration...")
         opcodesDatabase = FunctionDatabase(javaClass.getResourceAsStream(scriptConfiguration.opcodeDatabase), false, scriptConfiguration.scrambled)
         status("generating script signatures...")
-        scriptsDatabase = generateScriptsDatabase(scriptConfiguration) // TODO create task to generate a file for this, if file is detected use that
+        scriptsDatabase = scriptConfiguration.generateScriptsDatabase(cacheLibrary)
         status("generating auto complete items...")
         generateAutoCompleteItems()
         status("caching all scripts...")
@@ -333,63 +331,6 @@ class MainController : Initializable {
             saveDecompiled.isDisable = false
             buildMenuItem.isDisable = false
         }
-    }
-
-    private fun generateScriptsDatabase(configuration: ScriptConfiguration, loop: Int = 6): FunctionDatabase {
-        val opcodesDatabase = FunctionDatabase(javaClass.getResourceAsStream(configuration.opcodeDatabase), false, configuration.scrambled)
-        val scriptsDatabase = FunctionDatabase()
-        val ids = cacheLibrary.index(SCRIPTS_INDEX).archiveIds()
-        for (l in 0 until loop) {
-            for (id in ids) {
-                val data = cacheLibrary.data(SCRIPTS_INDEX, id)
-                try {
-                    val script = CS2Reader.readCS2ScriptNewFormat(data, id, configuration.unscrambled, configuration.disableSwitches, configuration.disableLongs)
-                    val decompiler = CS2Decompiler(script, opcodesDatabase, scriptsDatabase)
-                    try {
-                        decompiler.decompile()
-                    } catch (ex: Throwable) {
-                    }
-                    val function = decompiler.function
-                    if (function.returnType == UNKNOWN) {
-                        continue
-                    }
-                    val info = scriptsDatabase.getInfo(id)
-                    info.name = function.name
-                    if (info.returnType === UNKNOWN) {
-                        info.returnType = function.returnType
-                    }
-                    for (a in function.argumentLocals.indices) {
-                        info.argumentTypes[a] = function.argumentLocals[a].type
-                        info.argumentNames[a] = function.argumentLocals[a].name
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace() // unknown scrambling etc
-                }
-            }
-        }
-        var successCount = 0
-        val writer = StringWriter()
-        for (id in ids) {
-            val info = scriptsDatabase.getInfo(id)
-            if (info?.getReturnType() == null /* || info.getReturnType() == CS2Type.UNKNOWN*/) {
-                continue
-            }
-            if (info.returnType != UNKNOWN) {
-                successCount++
-            }
-            if (info.getReturnType().isStructure) {
-                writer.write("$id ${info.getName()} {${info.getReturnType().toString().replace(" ".toRegex(), "")}}")
-            } else {
-                writer.write("$id ${info.getName()} ${info.getReturnType()}")
-            }
-            for (a in info.getArgumentTypes().indices) {
-                writer.write(" ${info.getArgumentTypes()[a]} ${info.getArgumentNames()[a]}")
-            }
-            writer.write("\r\n")
-        }
-        println("Generated $successCount/${ids.size} script signatures.")
-        val signatures = writer.toString()
-        return FunctionDatabase(signatures, true, null)
     }
 
     private fun generateAutoCompleteItems() {
@@ -595,8 +536,6 @@ class MainController : Initializable {
     }
 
     companion object {
-
-        const val SCRIPTS_INDEX = 12
 
         var timeFormat = SimpleDateFormat("HH:mm:ss")
         val VAR_LIST = mutableListOf<String>()

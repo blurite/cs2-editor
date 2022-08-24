@@ -1,6 +1,6 @@
 package com.displee.editor
 
-import com.displee.editor.controller.MainController.Companion.SCRIPTS_INDEX
+import dawn.cs2.SCRIPTS_INDEX
 import javafx.scene.Node
 import javafx.scene.control.ButtonType
 import javafx.scene.control.ChoiceDialog
