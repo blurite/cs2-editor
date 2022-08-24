@@ -1,9 +1,9 @@
-FROM amazoncorretto:11
+FROM amazoncorretto:17
 
 WORKDIR cs2-editor
 
 gradle:
-    COPY build.gradle settings.gradle gradlew .
+    COPY build.gradle.kts settings.gradle.kts gradlew .
     COPY ./gradle ./gradle
     RUN ./gradlew build
 
