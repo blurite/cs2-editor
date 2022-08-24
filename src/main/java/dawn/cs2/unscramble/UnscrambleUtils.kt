@@ -3,8 +3,8 @@ package dawn.cs2.unscramble
 object UnscrambleUtils {
 
     @JvmStatic
-    fun read(version: Int, scramble: HashMap<Int, Int>, unscramble: HashMap<Int, Int>) {
-        val text = javaClass.getResource("/cs2/opcode/unscramble/$version.txt").readText()
+    fun read(scramble: HashMap<Int, Int>, unscramble: HashMap<Int, Int>) {
+        val text = javaClass.getResource("/cs2/opcode/unscramble/osrs.txt").readText()
         for (i in text.lines()) {
             val opcodes = i.split(" ")
             if (opcodes.size < 2 || opcodes[0] == "?" || opcodes[0].startsWith("#")) {

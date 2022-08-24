@@ -100,7 +100,7 @@ class MainController : Initializable {
     lateinit var cacheLibrary: CacheLibrary
     private lateinit var scripts: IntArray
 
-    private lateinit var scriptConfiguration: ScriptConfiguration
+    private val scriptConfiguration = ScriptConfiguration("/cs2/opcode/database/osrs.ini", false, true)
     private lateinit var opcodesDatabase: FunctionDatabase
     private lateinit var scriptsDatabase: FunctionDatabase
 
@@ -273,7 +273,7 @@ class MainController : Initializable {
                     }
                 } else if (text.isNotEmpty() && !i.toString().startsWith(text)) {
                     val cached = cachedScripts[i]
-                    if (::scriptConfiguration.isInitialized && cached != null && cached.contains(text)) {
+                    if (cached != null && cached.contains(text)) {
                         list.add(i)
                     }
                 } else {
@@ -319,19 +319,9 @@ class MainController : Initializable {
 
     private fun createScriptConfigurations() {
         status("guessing script configuration...")
-        val scriptConfiguration = guessConfiguration()
-        if (scriptConfiguration == null) {
-            Platform.runLater {
-                Notification.error("Unable to find correct script configuration for this cache.")
-            }
-            clearCache()
-            return
-        }
-        println("Using config: $scriptConfiguration")
-        this.scriptConfiguration = scriptConfiguration
         opcodesDatabase = FunctionDatabase(javaClass.getResourceAsStream(scriptConfiguration.opcodeDatabase), false, scriptConfiguration.scrambled)
         status("generating script signatures...")
-        scriptsDatabase = generateScriptsDatabase(scriptConfiguration)
+        scriptsDatabase = generateScriptsDatabase(scriptConfiguration) // TODO create task to generate a file for this, if file is detected use that
         status("generating auto complete items...")
         generateAutoCompleteItems()
         status("caching all scripts...")
@@ -343,61 +333,6 @@ class MainController : Initializable {
             saveDecompiled.isDisable = false
             buildMenuItem.isDisable = false
         }
-    }
-
-    private fun guessConfiguration(): ScriptConfiguration? {
-        val testUnit = { config: ScriptConfiguration ->
-            Boolean
-            val ids = cacheLibrary.index(SCRIPTS_INDEX).archiveIds()
-            var error = 0
-            for (id in ids) {
-                val data = cacheLibrary.data(SCRIPTS_INDEX, id)
-                try {
-                    CS2Reader.readCS2ScriptNewFormat(data, id, config.unscrambled, config.disableSwitches, config.disableLongs)
-                } catch (e: Throwable) {
-// 					error++
-// 					if (error >= 2) {
-// 						break
-// 					}
-                    if (config.version == 179) {
-                        println(e)
-                        println("id $id")
-                    }
-                }
-            }
-            println("config: ${config.version} $error")
-            error < 2
-        }
-        var configuration: ScriptConfiguration? = null
-        if (cacheLibrary.isOSRS()) {
-            val configurations = arrayOf(
-                ScriptConfiguration(154, "/cs2/opcode/database/osrs.ini", false, true),
-                ScriptConfiguration(176, "/cs2/opcode/database/osrs.ini", false, true),
-                ScriptConfiguration(179, "/cs2/opcode/database/osrs.ini", false, true)
-            )
-            for (i in configurations) {
-                if (testUnit(i)) {
-                    configuration = i
-                }
-            }
-        } else {
-            val configurations = arrayOf(
-                // < 500
-                ScriptConfiguration(464, "/cs2/opcode/database/rs2_new.ini", true, true),
-                // >= 500 && < 643
-                ScriptConfiguration(667, "/cs2/opcode/database/rs2_old.ini", false, true),
-                // >= 643
-                ScriptConfiguration(667, "/cs2/opcode/database/rs2_new.ini", false, false)
-                // 718
-                // ScriptConfiguration(718, "/cs2/opcode/database/rs2_new.ini", false, false) //TODO Fix 718
-            )
-            for (i in configurations) {
-                if (testUnit(i)) {
-                    configuration = i
-                }
-            }
-        }
-        return configuration
     }
 
     private fun generateScriptsDatabase(configuration: ScriptConfiguration, loop: Int = 6): FunctionDatabase {
@@ -511,9 +446,6 @@ class MainController : Initializable {
     }
 
     private fun cacheAllScripts() {
-        if (!::scriptConfiguration.isInitialized) {
-            return
-        }
         cachedScripts.clear()
         for (i in scripts) {
             try {
