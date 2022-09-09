@@ -41,8 +41,8 @@ import java.time.Instant
 import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.div
+import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
 class MainController : Initializable {
@@ -52,6 +52,9 @@ class MainController : Initializable {
 
     @FXML
     private lateinit var saveDecompiled: MenuItem
+
+    @FXML
+    private lateinit var saveCompiled: MenuItem
 
     @FXML
     private lateinit var buildMenuItem: MenuItem
@@ -118,6 +121,9 @@ class MainController : Initializable {
         }
         saveDecompiled.setOnAction {
             saveScript()
+        }
+        saveCompiled.setOnAction {
+            saveCompiledScript()
         }
         buildMenuItem.setOnAction {
             packScript()
@@ -329,6 +335,7 @@ class MainController : Initializable {
             scriptList.isDisable = false
             newMenuItem.isDisable = false
             saveDecompiled.isDisable = false
+            saveCompiled.isDisable = false
             buildMenuItem.isDisable = false
         }
     }
@@ -426,7 +433,6 @@ class MainController : Initializable {
         return printer.toString()
     }
 
-    @OptIn(ExperimentalPathApi::class)
     private fun saveScript() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
@@ -436,6 +442,21 @@ class MainController : Initializable {
         outputFile.writeText(activeCodeArea.text)
 
         println("Saved script ${script.scriptID}.cs2")
+    }
+
+    private fun saveCompiledScript() {
+        val script = currentScript ?: return
+        val activeCodeArea = activeCodeArea()
+
+        val outputDir = DirectoryChooser().showDialog(mainWindow()) ?: return
+        val outputFile = outputDir.toPath() / "${script.scriptID}.dat"
+
+        val function = CS2ScriptParser.parse(activeCodeArea.text, opcodesDatabase, scriptsDatabase)
+        val compiler = CS2Compiler(function, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+        val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
+        outputFile.writeBytes(compiled)
+
+        println("Saved script ${script.scriptID}.dat")
     }
 
     private fun compileScript() {
@@ -518,6 +539,7 @@ class MainController : Initializable {
         scriptList.isDisable = true
         newMenuItem.isDisable = true
         saveDecompiled.isDisable = true
+        saveCompiled.isDisable = true
         buildMenuItem.isDisable = true
     }
 
