@@ -22,7 +22,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("com.displee:disio:2.2")
     implementation("com.displee:rs-cache-library:6.8.1")
-    if (gprUser != null) {
+    if (gprUser != null && gprKey != null) {
         implementation("io.blurite:rscm:1.0")
     }
     implementation("org.fxmisc.richtext:richtextfx:0.10.9")
