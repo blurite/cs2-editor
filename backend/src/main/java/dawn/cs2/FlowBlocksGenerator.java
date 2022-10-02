@@ -2,10 +2,10 @@ package dawn.cs2;
 
 import dawn.cs2.ast.*;
 import dawn.cs2.instructions.*;
-import dawn.cs2.util.IOUtils;
-import dawn.cs2.util.OpcodeUtils;
 import dawn.cs2.repo.DbTableTypeRepo;
 import dawn.cs2.util.FunctionInfo;
+import dawn.cs2.util.IOUtils;
+import dawn.cs2.util.OpcodeUtils;
 import org.apache.commons.lang3.Range;
 
 import java.io.*;
@@ -14,24 +14,29 @@ import java.util.*;
 import static dawn.cs2.instructions.Opcodes.*;
 
 public class FlowBlocksGenerator {
-
-    private CS2Decompiler decompiler;
-    private CS2 cs2;
-    private FunctionNode function;
-    private List<FlowBlock> blocks = new ArrayList<>();
-    private Queue<FlowBlock> unprocessedBlocks = new LinkedList<>();
-    private Map<Integer, FlowBlock> byAddress = new HashMap<>();
-    private int blockCount = 1;
-
+    
     private static final List<Range<Integer>> OBJECT_OPCODES = new ArrayList<>();
     private static final List<Range<Integer>> OBJECT_WIDGET_OPCODES = new ArrayList<>();
+    /**
+     * From script definition we only know the number of arguments, not the actual order of types, eg (int, int, str) vs (int, str, int)
+     * If we look at the types on the stack, we can determine the ACTUAL order (because their compiler enforces the actual order)
+     */
+    public static boolean SKIP_ARG_ORDER_ANALYSIS = false;
 
     static {
         OBJECT_OPCODES.addAll(readOpcodeRanges("/cs2/opcode/obj_opcodes.txt"));
         OBJECT_WIDGET_OPCODES.addAll(readOpcodeRanges("/cs2/opcode/obj_opcodes_widget.txt"));
     }
 
-
+    private final CS2Decompiler decompiler;
+    private final CS2 cs2;
+    private final FunctionNode function;
+    private final List<FlowBlock> blocks = new ArrayList<>();
+    private final Queue<FlowBlock> unprocessedBlocks = new LinkedList<>();
+    private final Map<Integer, FlowBlock> byAddress = new HashMap<>();
+    private int blockCount = 1;
+    
+    
     public FlowBlocksGenerator(CS2Decompiler decompiler) {
         this.decompiler = decompiler;
         this.cs2 = decompiler.getCs2();
@@ -39,8 +44,49 @@ public class FlowBlocksGenerator {
         //Block starting at address 0, with an empty stack
         unprocessedBlocks.add(new FlowBlock(0, 0, new CS2Stack()));
     }
-
-
+    
+    private static List<Range<Integer>> readOpcodeRanges(String resource) {
+        List<Range<Integer>> list = new ArrayList<>();
+        Reader reader = new InputStreamReader(FlowBlocksGenerator.class.getResourceAsStream(resource));
+        BufferedReader bufferedReader = new BufferedReader(reader);
+        String line;
+        try {
+            while ((line = bufferedReader.readLine()) != null) {
+                if (!line.contains("-")) {
+                    int opcode = Integer.parseInt(line);
+                    list.add(Range.is(opcode));
+                } else {
+                    String[] split = line.split("-");
+                    int opcodeStart = Integer.parseInt(split[0].trim());
+                    int opcodeEnd = Integer.parseInt(split[1].trim());
+                    list.add(Range.between(opcodeStart, opcodeEnd));
+                }
+            }
+            bufferedReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+    
+    public static boolean isObjectOpcode(int opcode) {
+        for (Range<Integer> range : OBJECT_OPCODES) {
+            if (range.contains(opcode)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public static boolean isObjectWidgetOpcode(int opcode) {
+        for (Range<Integer> range : OBJECT_WIDGET_OPCODES) {
+            if (range.contains(opcode)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     public void generate() throws DecompilerException {
         while (unprocessedBlocks.size() > 0) {
 //            System.out.println("Remaining "+unprocessedBlocks.size());
@@ -49,11 +95,11 @@ public class FlowBlocksGenerator {
             blocks.add(next);
         }
     }
-
+    
     private void processFlowBlock(FlowBlock block) {
         int ptr = block.getStartAddress();
         CS2Stack stack = block.getStack().copy();
-
+        
         try {
             for (; ; ptr++) {
                 if (ptr >= cs2.getInstructions().length)
@@ -67,8 +113,7 @@ public class FlowBlocksGenerator {
                     block.children.add(target);
                     block.write(new UnconditionalFlowBlockJump(target)); //This is natural flow, but insert a GOTO, this makes the control flow patterns which we are are looking for much easier to detect later
                     break;
-                } else if (instruction instanceof JumpInstruction) {
-                    JumpInstruction jmp = (JumpInstruction) instruction;
+                } else if (instruction instanceof JumpInstruction jmp) {
                     if (OpcodeUtils.getTwoConditionsJumpStackType(opcode) != -1) {
                         ExpressionNode uncasted1 = stack.pop();
                         ExpressionNode uncasted2 = stack.pop();
@@ -99,10 +144,9 @@ public class FlowBlocksGenerator {
                         throw new DecompilerException("Unknown jump instruction");
                     }
 //                    break;
-                } else if (instruction instanceof IntInstruction) {
-                    IntInstruction intInstr = (IntInstruction) instruction;
+                } else if (instruction instanceof IntInstruction intInstr) {
                     int val = intInstr.getConstant();
-
+                    
                     if (Opcodes.isAssign(opcode)) {
                         LinkedList<Variable> vars = new LinkedList<>();
                         LinkedList<ExpressionNode> assignments = new LinkedList<>();
@@ -116,7 +160,7 @@ public class FlowBlocksGenerator {
                                 stackTypes.addAll(expr_.getType().composite);
                             }
                             CS2Type currentType = stackTypes.pollLast();
-
+                            
                             if (opcode == POP_INT || opcode == Opcodes.POP_STRING || opcode == Opcodes.POP_LONG) {
                                 var = opcode == POP_INT ? Underscore.UNDERSCORE_I : opcode == POP_STRING ? Underscore.UNDERSCORE_S : Underscore.UNDERSCORE_L;
                             } else if (opcode == Opcodes.STORE_VARP) {
@@ -150,8 +194,8 @@ public class FlowBlocksGenerator {
                                 throw new DecompilerException("Incompatible");
                             }
                             vars.addFirst(var);
-
-
+                            
+                            
                             if (Opcodes.isAssign(cs2.getInstructions()[ptr + 1].getOpcode())) {
                                 intInstr = (IntInstruction) cs2.getInstructions()[++ptr];
                                 opcode = intInstr.getOpcode();
@@ -196,12 +240,12 @@ public class FlowBlocksGenerator {
                             this.function.setReturnType(CS2Type.VOID);
                         } else if (stack.getSize() == 1) {
                             if (stack.peek().getType() == CS2Type.UNKNOWN)
-                                throw new DecompilerException("Unknown return type "+stack.peek());
+                                throw new DecompilerException("Unknown return type " + stack.peek());
                             if (this.function.getReturnType() != CS2Type.UNKNOWN && stack.peek().getType() == CS2Type.INT) {
                                 stack.push(CS2Type.cast(stack.pop(), this.function.getReturnType()));
                             }
                             block.write(new ReturnNode(stack.peek()));
-
+                            
                             if (this.function.getReturnType() == CS2Type.UNKNOWN || this.function.getReturnType() == CS2Type.INT) {
                                 assert stack.peek().getType().isCompatible(this.function.getReturnType());
                                 this.function.setReturnType(stack.pop().getType());
@@ -298,7 +342,7 @@ public class FlowBlocksGenerator {
                         ExpressionNode a = stack.pop();
                         stack.push(new MathExpressionNode(new MathExpressionNode(a, c, Operator.MUL), b, Operator.DIV));
                     } else {
-
+                        
                         boolean dynamicArgTypes = false;
                         boolean dynamicResultType = false;
                         FunctionInfo info = decompiler.getOpcodesDatabase().getInfo(instruction.getOpcode());
@@ -327,8 +371,7 @@ public class FlowBlocksGenerator {
                         if (ret != -1)
                             ptr = ret;
                     }
-                } else if (instruction instanceof SwitchInstruction) {
-                    SwitchInstruction sw = (SwitchInstruction) instruction;
+                } else if (instruction instanceof SwitchInstruction sw) {
                     ExpressionNode value = stack.pop();
                     List<Integer> cases = sw.cases;
                     List<FlowBlock> targets = new ArrayList<>(cases.size());
@@ -339,7 +382,7 @@ public class FlowBlocksGenerator {
                         block.children.add(b);
                     }
                     block.write(new SwitchFlowBlockJump(value, cases, targets));
-
+                    
                 } else
                     throw new DecompilerException("Error:Unknown instruction type:" + instruction.getClass().getName());
             }
@@ -355,13 +398,7 @@ public class FlowBlocksGenerator {
             }*/
         }
     }
-
-    /**
-     * From script definition we only know the number of arguments, not the actual order of types, eg (int, int, str) vs (int, str, int)
-     * If we look at the types on the stack, we can determine the ACTUAL order (because their compiler enforces the actual order)
-     */
-    public static boolean SKIP_ARG_ORDER_ANALYSIS = false;
-
+    
     private void analyzeActualArgOrder(FunctionInfo info, CS2Stack stack) {
         if (info == null || SKIP_ARG_ORDER_ANALYSIS) return; //Callback is not decompiled yet
         boolean mod = false;
@@ -372,26 +409,26 @@ public class FlowBlocksGenerator {
                 //unroll multiple return value call into dummy expression nodes of all its types
                 for (CS2Type c : top.getType().composite) {
                     stack.push(new ExpressionNode() {
-
+                        
                         @Override
                         public CS2Type getType() {
                             return c;
                         }
-
+                        
                         @Override
                         public ExpressionNode copy() {
                             return null;
                         }
-
+                        
                         @Override
                         public void print(CodePrinter printer) {
                         }
                     });
-
+                    
                 }
                 continue;
             }
-
+            
             if (!info.getArgumentTypes()[i].isCompatible(top.getType())) {
                 for (int j = i - 1; j >= 0; j--) {
                     if (info.getArgumentTypes()[j].isCompatible(top.getType())) {
@@ -410,18 +447,17 @@ public class FlowBlocksGenerator {
             }
         }
         if (mod && CS2ConstantsKt.DEBUG) {
-            System.out.println("Shuffled args of " + info.toString());
+            System.out.println("Shuffled args of " + info);
             try {
                 FileWriter fw = new FileWriter("argorder.txt", true);
-                fw.write(info.toString() + "\r\n");
+                fw.write(info + "\r\n");
                 fw.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
-
-
+    
     /**
      * Some opcodes modify the stack in a way that can only be determined by looking at the arguments.
      * This method inspects the stack and returns a FunctionInfo with return/argument types that represent what this call will actually do
@@ -457,10 +493,9 @@ public class FlowBlocksGenerator {
             stack.pop(); //
             if (!(arg instanceof IntExpressionNode))
                 throw new DecompilerException("Dynamic type");
-
+            
             return new FunctionInfo(fi.getName(), opcode, fi.getArgumentTypes(), CS2Type.attrTypes.get(((IntExpressionNode) arg).getData()), fi.getArgumentNames(), false);
-        }
-        else if (opcode == 26513 || opcode == 26514 || opcode == 26515 || opcode == 26516) {
+        } else if (opcode == 26513 || opcode == 26514 || opcode == 26515 || opcode == 26516) {
             //return unknown type, there is only 1 stack anyway.
             return new FunctionInfo(fi.getName(), opcode, new CS2Type[]{CS2Type.INT, CS2Type.INT}, CS2Type.UNKNOWN, new String[]{"arg0", "arg1"}, false);
         } else if (opcode == 7502) {
@@ -468,7 +503,7 @@ public class FlowBlocksGenerator {
             final var column = ((IntExpressionNode) stack.pop()).getData();
             final var tupleIndex = (column & 0xf) - 1;
             stack.pop(); // row
-
+            
             var types = DbTableTypeRepo.INSTANCE.getMappings().get(column);
             if (tupleIndex != -1) {
                 types = new CS2Type[]{types[tupleIndex]};
@@ -476,11 +511,11 @@ public class FlowBlocksGenerator {
             
             return new FunctionInfo(fi.getName(), opcode, new CS2Type[]{CS2Type.DB_ROW, CS2Type.DB_COLUMN, CS2Type.DB_FIELD}, CS2Type.of(Arrays.asList(types)), types, fi.getArgumentNames(), false);
         }
-
+        
         throw new DecompilerException("Unhandled special opcode:" + opcode);
-
+        
     }
-
+    
     /**
      * Analyze a callback passed to a hook.
      * Removes all items on the stack describing the callback, and replace it with a AST node representing the 'callback object'
@@ -488,11 +523,11 @@ public class FlowBlocksGenerator {
     private void analyzeDelegate(CS2Stack stack, int opcode) {
         ExpressionNode invokeOn = null;
         ExpressionList trigger = null;
-
+        
         if (opcode >= 2000) {
             invokeOn = stack.pop();
         }
-
+        
         ExpressionNode stringExpr = stack.pop();
         if (!(stringExpr instanceof StringExpressionNode))
             throw new DecompilerException("Dynamic delegate - impossible to decompile.");
@@ -523,44 +558,41 @@ public class FlowBlocksGenerator {
             }
         }
         ExpressionNode scriptIdExpr = stack.pop();
-
+        
         int scriptId = ((IntExpressionNode) scriptIdExpr).data;
         FunctionInfo callBackInfo = null;
         if (scriptId != -1) {
             callBackInfo = decompiler.getScriptsDatabase().getInfo(scriptId);
             analyzeActualArgOrder(callBackInfo, argsCopy);
         }
-
+        
         if (callBackInfo != null) {
             //This is the most accurate source of type information. As their compiler generated it!
             for (int argument = 0; argument < callBackInfo.getArgumentTypes().length; argument++) {
                 callBackInfo.getArgumentTypes()[argument] = CS2Type.forJagexDesc(descriptor.charAt(argument));
             }
         }
-
-
+        
+        
         stack.push(new CallbackExpressionNode(callBackInfo == null ? null : new CallExpressionNode(callBackInfo, callBackArgs, false), trigger));
         if (invokeOn != null) {
             stack.push(invokeOn);
         }
     }
-
+    
     private int analyzeCall(FunctionInfo info, FlowBlock block, CS2Stack stack, int ptr, boolean staticArgTypes, boolean dynamicResultType, boolean isOpCodeCall, int callId, boolean useReg1) {
         CS2Type returnType = info.getReturnType();
-
-        boolean objCall = false;
+        
+        boolean objCall = isOpCodeCall && isObjectOpcode(callId);
 
 //        if (!CS2.OSRS) {
         //if (isOpCodeCall && (callId == 150 || callId == 151 || callId == 200 || callId == 201 || callId == 204 || callId == 205 || callId == 3109 || (callId >= 1000 && callId < 2000) || (callId >= 21000 && callId < 22000))) {
-        if (isOpCodeCall && isObjectOpcode(callId)) {
-            objCall = true;
-        }
-//        } else {
+        //        } else {
 //            if (isOpCodeCall && (callId == 100 || callId == 101 || callId == 200 || callId == 201 || callId == 3109 || (callId >= 1000 && callId < 1600))) {
 //                objCall = true;
 //            }
 //        }
-
+        
         ExpressionNode[] args = new ExpressionNode[info.getArgumentTypes().length + (objCall ? 1 : 0)];
         if (objCall) {
             args[info.getArgumentTypes().length] = new VariableLoadNode(useReg1 ? LocalVariable._CHILD : LocalVariable.CHILD);
@@ -579,7 +611,7 @@ public class FlowBlocksGenerator {
                 args[i] = new CastNode(expr.getType(), expr); //add explicit cast for clarity eg: script_3387(cs2method6131(), getDisplayMode(), (int, int)script_2692(cs2method6131()), 0);
                 continue;
             }
-
+            
             //Passing a local to a non int call? Change the locals type to the required call type (these will be compatible types)
             if (type != CS2Type.INT && expr instanceof VariableLoadNode && ((VariableLoadNode) expr).getVariable() instanceof LocalVariable) {
                 ((LocalVariable) ((VariableLoadNode) expr).getVariable()).changeType(type);
@@ -602,12 +634,12 @@ public class FlowBlocksGenerator {
                 //infer (change) definition, cant do this for ALL opcode calls because some are dynamic though!!! eg enum... script hooks, but could for most
                 //TODO: Don't infer boolean args? they are sometimes passed to function that also take int
                 assert info.getArgumentTypes()[i].isCompatible(expr.getType());
-
+                
                 type = expr.getType();
                 if (isOpCodeCall && CS2ConstantsKt.DEBUG) {
                     try {
                         FileWriter fw = new FileWriter("opcodehint.txt", true);
-                        fw.write(info.toString() + "\r\n");
+                        fw.write(info + "\r\n");
                         fw.close();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -618,13 +650,13 @@ public class FlowBlocksGenerator {
         }
 
 //        if (!CS2.OSRS) {
-
+        
         objCall |= isOpCodeCall && isObjectWidgetOpcode(callId);
 //        } else {
 //        objCall |= isOpCodeCall && (callId == 102 || (callId >= 2000 && callId < 2600));
 //        }
-
-
+        
+        
         if (returnType == CS2Type.VOID) { // void
             block.write(new PopableNode(new CallExpressionNode(info, args, objCall)));
         } else {
@@ -632,8 +664,7 @@ public class FlowBlocksGenerator {
         }
         return -1;
     }
-
-
+    
     private FlowBlock generateFlowBlock(Label label, CS2Stack variableStack) {
         FlowBlock same = byAddress.get(label.getAddress() + 1);
         if (same != null) {
@@ -641,7 +672,7 @@ public class FlowBlocksGenerator {
                 return same;
             }
         }
-
+        
         int blockID = blockCount++;
         FlowBlock b = new FlowBlock(blockID, label.getAddress() + 1, variableStack);
         unprocessedBlocks.add(b);
@@ -653,9 +684,9 @@ public class FlowBlocksGenerator {
             throw new DecompilerException("bad flow");
         }
         return b;
-
+        
     }
-
+    
     /**
      * Check's if two stacks can be merged.
      * false is returned if stack sizes doesn't match or
@@ -689,51 +720,9 @@ public class FlowBlocksGenerator {
         }
         return true;
     }
-
-    private static List<Range<Integer>> readOpcodeRanges(String resource) {
-        List<Range<Integer>> list = new ArrayList<>();
-        Reader reader = new InputStreamReader(FlowBlocksGenerator.class.getResourceAsStream(resource));
-        BufferedReader bufferedReader = new BufferedReader(reader);
-        String line;
-        try {
-            while ((line = bufferedReader.readLine()) != null) {
-                if (!line.contains("-")) {
-                    int opcode = Integer.parseInt(line);
-                    list.add(Range.is(opcode));
-                } else {
-                    String[] split = line.split("-");
-                    int opcodeStart = Integer.parseInt(split[0].trim());
-                    int opcodeEnd = Integer.parseInt(split[1].trim());
-                    list.add(Range.between(opcodeStart, opcodeEnd));
-                }
-            }
-            bufferedReader.close();
-        } catch(IOException e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
-
-    public static boolean isObjectOpcode(int opcode) {
-        for(Range<Integer> range : OBJECT_OPCODES) {
-            if (range.contains(opcode)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static boolean isObjectWidgetOpcode(int opcode) {
-        for(Range<Integer> range : OBJECT_WIDGET_OPCODES) {
-            if (range.contains(opcode)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
+    
     public List<FlowBlock> getBlocks() {
         return blocks;
     }
-
+    
 }

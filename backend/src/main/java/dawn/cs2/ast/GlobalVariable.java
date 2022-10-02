@@ -7,15 +7,25 @@ import dawn.cs2.instructions.IntInstruction;
 import dawn.cs2.instructions.Opcodes;
 
 public class GlobalVariable implements Variable {
-
+    
+    private final String name;
+    private final int idx;
+    private final CS2Type type;
+    
+    private GlobalVariable(String name, int idx, CS2Type type) {
+        this.name = name;
+        this.idx = idx;
+        this.type = type;
+    }
+    
     public static GlobalVariable find(String name, int idx, CS2Type type) {
         return new GlobalVariable(name, idx, type);
     }
-
+    
     public static GlobalVariable VARP(int idx, CS2Type type) {
         return new GlobalVariable("VARP", idx, type);
     }
-
+    
     public static GlobalVariable VARPBIT(int idx, CS2Type type) {
         return new GlobalVariable("VARPBIT", idx, type);
     }
@@ -27,7 +37,7 @@ public class GlobalVariable implements Variable {
     public static GlobalVariable VARC_STRING(int idx) {
         return new GlobalVariable("STRING", idx, CS2Type.STRING);
     }
-
+    
     public static GlobalVariable parse(String n) {
         int idx = Integer.parseInt(n.substring(n.indexOf('[') + 1, n.indexOf(']')));
         String prefix = n.substring(0, n.indexOf('['));
@@ -51,27 +61,17 @@ public class GlobalVariable implements Variable {
                 throw new DecompilerException("I don't know how to parse this");
         }
     }
-
-    private final String name;
-    private final int idx;
-    private CS2Type type;
-
-    private GlobalVariable(String name, int idx, CS2Type type) {
-        this.name = name;
-        this.idx = idx;
-        this.type = type;
-    }
-
+    
     @Override
     public String getName() {
         return name + "[" + idx + "]";
     }
-
+    
     @Override
     public CS2Type getType() {
         return type;
     }
-
+    
     @Override
     public AbstractInstruction generateStoreInstruction() {
         switch (name) {
@@ -87,7 +87,7 @@ public class GlobalVariable implements Variable {
                 throw new DecompilerException("This global is read-only");
         }
     }
-
+    
     @Override
     public AbstractInstruction generateLoadInstruction() {
         int op = -1;
@@ -133,6 +133,6 @@ public class GlobalVariable implements Variable {
                 throw new DecompilerException("I don't know how to load this");
         }
         return new IntInstruction(op, idx);
-
+        
     }
 }

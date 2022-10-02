@@ -7,26 +7,26 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class FunctionDatabase {
-
-    private FunctionInfo[] info;
-    private Map<String, List<FunctionInfo>> lookup = new HashMap<>();
+    
+    private final FunctionInfo[] info;
+    private final Map<String, List<FunctionInfo>> lookup = new HashMap<>();
     private String source;
-
+    
     public FunctionDatabase(InputStream stream, boolean isScript, Map<Integer, Integer> scramble) {
         this.info = new FunctionInfo[40000];
         this.readDatabase(new InputStreamReader(stream), isScript, scramble);
     }
-
+    
     public FunctionDatabase(String s, boolean isScript, Map<Integer, Integer> scramble) {
         this.source = s;
         this.info = new FunctionInfo[40000];
         this.readDatabase(new StringReader(s), isScript, scramble);
     }
-
+    
     public FunctionDatabase() {
         this.info = new FunctionInfo[40000];
     }
-
+    
     public FunctionDatabase copy() {
         FunctionDatabase cpy = new FunctionDatabase();
         System.arraycopy(info, 0, cpy.info, 0, info.length);
@@ -35,7 +35,7 @@ public class FunctionDatabase {
         }
         return cpy;
     }
-
+    
     private void readDatabase(Reader r, boolean isScript, Map<Integer, Integer> scramble) {
         try {
             BufferedReader reader = new BufferedReader(r);
@@ -46,7 +46,7 @@ public class FunctionDatabase {
                 try {
                     String[] split = line.split(" ");
                     int opcode = Integer.parseInt(split[0]);
-                    if(scramble != null && !scramble.containsKey(opcode)) {
+                    if (scramble != null && !scramble.containsKey(opcode)) {
                         continue;
                     }
                     String name = split[1];
@@ -54,11 +54,11 @@ public class FunctionDatabase {
                     if (split[2].contains("|")) {
                         String[] multiReturn = split[2].split("\\|");
                         returnTypes = new CS2Type[multiReturn.length];
-                        for(int i = 0; i < returnTypes.length; i++) {
+                        for (int i = 0; i < returnTypes.length; i++) {
                             returnTypes[i] = CS2Type.forDesc(multiReturn[i]);
                         }
                     } else {
-                        returnTypes = new CS2Type[]{ CS2Type.forDesc(split[2]) };
+                        returnTypes = new CS2Type[]{CS2Type.forDesc(split[2])};
                     }
                     CS2Type[] argTypes = new CS2Type[(split.length - 2) / 2];
                     String[] argNames = new String[(split.length - 2) / 2];
@@ -78,21 +78,21 @@ public class FunctionDatabase {
             t.printStackTrace();
         }
     }
-
-
+    
+    
     public FunctionInfo getInfo(int opcode) {
         if (opcode < 0 || opcode >= info.length)
             return null;
         return info[opcode];
     }
-
-
+    
+    
     public void putInfo(int opcode, FunctionInfo f) {
         this.info[opcode] = f;
         lookup.computeIfAbsent(f.getName(), n -> new ArrayList<>());
         lookup.get(f.getName()).add(this.info[opcode]);
     }
-
+    
     public List<FunctionInfo> getByName(String symbol) {
         return lookup.getOrDefault(symbol, Collections.emptyList());
     }

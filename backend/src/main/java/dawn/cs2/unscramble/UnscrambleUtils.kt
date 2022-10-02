@@ -1,7 +1,7 @@
 package dawn.cs2.unscramble
 
 object UnscrambleUtils {
-
+    
     @JvmStatic
     fun read(scramble: HashMap<Int, Int>, unscramble: HashMap<Int, Int>) {
         val text = javaClass.getResource("/cs2/opcode/unscramble/osrs.txt").readText()

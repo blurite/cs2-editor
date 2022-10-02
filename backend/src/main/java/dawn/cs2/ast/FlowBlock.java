@@ -7,12 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FlowBlock extends ParentAbstractCodeNode implements Comparable<FlowBlock> {
-
-    /**
-     * Contains ID of this flow block.
-     * Main flow block ID is always 0.
-     */
-    private int blockID;
+    
     /**
      * Contains all blocks to which this blocks
      * jumps with instructions.
@@ -24,16 +19,21 @@ public class FlowBlock extends ParentAbstractCodeNode implements Comparable<Flow
      */
     public List<FlowBlock> parents;
     /**
+     * Contains ID of this flow block.
+     * Main flow block ID is always 0.
+     */
+    private final int blockID;
+    /**
      * Contains stack content before jumping/walking into this
      * block dumped to local variables.
      */
-    private CS2Stack variableStack;
+    private final CS2Stack variableStack;
     /**
      * Contains start address of this flow block in instructions.
      * Not guaranteed to be correct.
      */
-    private int startAddress;
-
+    private final int startAddress;
+    
     public FlowBlock(int blockID, int startAddress, CS2Stack stack) {
         this.blockID = blockID;
         this.startAddress = startAddress;
@@ -41,10 +41,8 @@ public class FlowBlock extends ParentAbstractCodeNode implements Comparable<Flow
         this.children = new ArrayList<>();
         this.parents = new ArrayList<>();
     }
-
-
-
-
+    
+    
     @Override
     public void print(CodePrinter printer) {
         printer.print("flow_" + this.blockID + ": // (parents: " + parents.size() + " children: " + children.size() + ")");
@@ -56,29 +54,29 @@ public class FlowBlock extends ParentAbstractCodeNode implements Comparable<Flow
         }
         printer.untab();
     }
-
+    
     public CS2Stack getStack() {
         return variableStack;
     }
-
+    
     public int getStartAddress() {
         return startAddress;
     }
-
+    
     public int getBlockID() {
         return blockID;
     }
-
+    
     @Override
     public int hashCode() {
         return blockID;
     }
-
+    
     @Override
     public boolean equals(Object obj) {
         return ((FlowBlock) obj).blockID == blockID;
     }
-
+    
     @Override
     public int compareTo(FlowBlock o) {
         return blockID - o.blockID;

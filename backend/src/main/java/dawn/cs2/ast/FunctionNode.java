@@ -6,14 +6,14 @@ import dawn.cs2.CodePrinter;
 import java.util.List;
 
 public class FunctionNode extends AbstractCodeNode {
-
-    private String name;
-    private CS2Type[] arguments;
-    private LocalVariable[] argumentLocals;
+    
+    private final String name;
+    private final CS2Type[] arguments;
+    private final LocalVariable[] argumentLocals;
     private CS2Type returnType;
-    private ScopeNode mainScope;
-
-
+    private final ScopeNode mainScope;
+    
+    
     public FunctionNode(String name, CS2Type[] args, CS2Type returnType, ScopeNode scope) {
         this.name = name;
         this.arguments = args;
@@ -21,7 +21,7 @@ public class FunctionNode extends AbstractCodeNode {
         this.argumentLocals = new LocalVariable[args.length];
         this.mainScope = scope;
     }
-
+    
     public FunctionNode(String name, CS2Type[] args, CS2Type returnType, ScopeNode scope, List<LocalVariable> locals) {
         this.name = name;
         this.arguments = args;
@@ -29,33 +29,32 @@ public class FunctionNode extends AbstractCodeNode {
         this.argumentLocals = locals.toArray(new LocalVariable[locals.size()]);
         this.mainScope = scope;
     }
-
+    
     public String getName() {
         return name;
     }
-
+    
     public CS2Type[] getArguments() {
         return arguments;
     }
-
+    
     public LocalVariable[] getArgumentLocals() {
         return argumentLocals;
     }
-
-    public void setReturnType(CS2Type returnType) {
-        this.returnType = returnType;
-    }
-
+    
     public CS2Type getReturnType() {
         return returnType;
     }
-
-
+    
+    public void setReturnType(CS2Type returnType) {
+        this.returnType = returnType;
+    }
+    
     public ScopeNode getMainScope() {
         return mainScope;
     }
-
-
+    
+    
     @Override
     public void print(CodePrinter printer) {
         printer.print(this.returnType.toString());
@@ -71,6 +70,6 @@ public class FunctionNode extends AbstractCodeNode {
         printer.print(' ');
         this.mainScope.print(printer);
     }
-
-
+    
+    
 }

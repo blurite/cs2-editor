@@ -1,18 +1,18 @@
 package dawn.cs2.instructions;
 
 public class IntInstruction extends AbstractInstruction {
-
-    private int constant;
-
+    
+    private final int constant;
+    
     public IntInstruction(int opcode, int constant) {
         super(opcode);
         this.constant = constant;
     }
-
+    
     public int getConstant() {
         return constant;
     }
-
+    
     @Override
     public String toString() {
         String name = Opcodes.getOpcodeName(this.getOpcode());
@@ -26,5 +26,5 @@ public class IntInstruction extends AbstractInstruction {
         }
         return String.format("%-16.16s %d", name, constant);
     }
-
+    
 }

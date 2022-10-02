@@ -3,18 +3,17 @@ package dawn.cs2;
 
 import dawn.cs2.ast.*;
 import dawn.cs2.util.FunctionDatabase;
-import dawn.cs2.util.TextUtils;
-import dawn.cs2.ast.*;
 import dawn.cs2.util.FunctionInfo;
+import dawn.cs2.util.TextUtils;
 
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public class CS2ScriptParser {
-
-    private FunctionDatabase opcodesDatabase;
-    private FunctionDatabase scriptsDatabase;
+    
+    public Predicate<String> REG_INT = Pattern.compile("^\\d+$").asPredicate();
+    public Predicate<String> REG_LONG = Pattern.compile("^\\d+[lL]$").asPredicate();
 
 //    public static void main(String[] args) throws IOException {
 //
@@ -30,12 +29,40 @@ public class CS2ScriptParser {
 //        CS2Compiler compiler = new CS2Compiler(func);
 //        compiler.compile(new File("compiled/" + id));
 //    }
-
-    private StringTokenizer lexer;
+    public Predicate<String> REG_COLOR = Pattern.compile("^0x([A-Fa-f0-9]{6})$").asPredicate();
+    public String COMMA = ",";
+    public String LEFT_PAREN = "(";
+    public String RIGHT_PAREN = ")";
+    public String SCOPE_START = "{";
+    public String SCOPE_END = "}";
+    public String ARRAY_IDX_START = "[";
+    public String ARRAY_IDX_END = "]";
+    public String SEMI = ";";
+    public String DOT = ".";
+    
+    //args dynamic = look for last string literal arg
+    //return type dynamic = enum? second char arg ELSE attr id lookup
+    public String SWITCH = "switch";
+    public String WHILE = "while";
+    public String CASE = "case";
+    public String DEFAULT = "default";
+    public String TRUE = "true";
+    public String FALSE = "false";
+    public String NULL = "null";
+    int intlocals;
+    int stringlocals;
+    int longlocals;
+    private final FunctionDatabase opcodesDatabase;
+    private FunctionDatabase scriptsDatabase;
+    private final StringTokenizer lexer;
     private ScopeNode currentScope;
     private Map<String, Variable> declared = new HashMap<>();
-
-
+    private String curr = "";
+    private boolean returnWhitespace = false;
+    private int lineNumber = 1;
+    private int linePos = 0;
+    private StringBuilder currentLine = new StringBuilder();
+    
     private CS2ScriptParser(String input, FunctionDatabase opcodesDatabase, FunctionDatabase scriptsDatabase) {
         lexer = new StringTokenizer(TextUtils.unescapeUnicode(input), "{}()[] \t\r\n\f#.=+-*/%;,!:><&|'\"\\", true);
         this.opcodesDatabase = opcodesDatabase;
@@ -45,7 +72,7 @@ public class CS2ScriptParser {
         declared.put("_CHILD", LocalVariable._CHILD);
         declared.put("_", Underscore.UNDERSCORE);
     }
-
+    
     public static FunctionNode parse(String input, FunctionDatabase opcodesDatabase, FunctionDatabase scriptsDatabase) {
         CS2ScriptParser parser = new CS2ScriptParser(input, opcodesDatabase, scriptsDatabase);
         try {
@@ -74,11 +101,7 @@ public class CS2ScriptParser {
             throw new DecompilerException(t.getMessage() + "\r\n" + msg);
         }
     }
-
-    int intlocals;
-    int stringlocals;
-    int longlocals;
-
+    
     public FunctionNode parseScriptDefinition() {
         advance();
         boolean copied = false;
@@ -97,7 +120,7 @@ public class CS2ScriptParser {
                 throw new DecompilerException("define void signature() ID expected");
             }
         }
-
+        
         //Parse signature
         FunctionNode root = parseSignature(true);
         assert curr.equals(SCOPE_START) : "{ expected: " + curr;
@@ -113,7 +136,7 @@ public class CS2ScriptParser {
         }
         return root;
     }
-
+    
     private FunctionNode parseSignature(boolean names) {
         List<CS2Type> returnType = new ArrayList<>();
         while (true) {
@@ -163,13 +186,10 @@ public class CS2ScriptParser {
         advance(); //right paren
         //Parse main scope
         FunctionNode root = new FunctionNode(scriptName, argTypes.toArray(new CS2Type[0]), CS2Type.of(returnType), scope, arguments);
-
+        
         return root;
     }
-
-    //args dynamic = look for last string literal arg
-    //return type dynamic = enum? second char arg ELSE attr id lookup
-
+    
     private FunctionInfo resolveCall(String name, List<ExpressionNode> args) {
         List<CS2Type> signature = new ArrayList<>();
         for (ExpressionNode arg : args) {
@@ -186,13 +206,13 @@ public class CS2ScriptParser {
             signature.addAll(arg.getType().composite);
 //            }
         }
-
+        
         search:
         for (FunctionInfo op : opcodesDatabase.getByName(name)) {
             if (signature.size() != op.getArgumentTypes().length) {
                 continue;
             }
-
+            
             for (int i = 0; i < signature.size(); i++) {
                 if (op.getArgumentTypes()[i] == CS2Type.CALLBACK && args.get(i) instanceof NullableIntExpressionNode) {
                     args.set(i, new CallbackExpressionNode(null /* new CallExpressionNode(new FunctionInfo("null (unhook)", -1, new CS2Type[0], CS2Type.VOID, new String[0], true), new ExpressionNode[0], false)*/, null));
@@ -232,7 +252,7 @@ public class CS2ScriptParser {
         }
         return null;
     }
-
+    
     public void readSwitchScope(SwitchNode sw) {
         ScopeNode scope = sw.getScope();
         HashMap<String, Variable> beforeScope = new HashMap<>(declared);
@@ -264,7 +284,7 @@ public class CS2ScriptParser {
                 advance();
                 scope.write(new CaseAnnotation());
             }
-
+            
             AbstractCodeNode node = parseBlockStatement();
             if (node != null) {
                 scope.write(node);
@@ -296,7 +316,7 @@ public class CS2ScriptParser {
         if (curr.equals(SCOPE_END)) {
             return null;
         }
-
+        
         ExpressionNode statement = parseVariableDeclaration();
         if (statement != null) {
             advance();
@@ -306,7 +326,7 @@ public class CS2ScriptParser {
             advance();
             return parseBlockStatement();
         }
-
+        
         //TODO:
         //break
         //comment
@@ -314,20 +334,20 @@ public class CS2ScriptParser {
         if (control != null) {
             return control;
         }
-
-
+        
+        
         if (statement == null)
             statement = parseExpressionStatement();
-
+        
         if (statement instanceof VariableAssignationNode) {
 //            checkTypes((VariableAssignationNode)statement);
         }
-
+        
         assert curr.equals(SEMI);
         advance();
         return new PopableNode(statement);
     }
-
+    
     private AbstractCodeNode parseFlowConstruct() {
         if (curr.equals("return")) {
             advance();
@@ -336,7 +356,7 @@ public class CS2ScriptParser {
             advance();
             return new ReturnNode(values);
         }
-
+        
         if (curr.equals(SWITCH)) {
             advance();
             assert curr.equals(LEFT_PAREN);
@@ -349,7 +369,7 @@ public class CS2ScriptParser {
             }
             return sw;
         }
-
+        
         AbstractCodeNode flow = null;
         ScopeNode scope = null;
         if (curr.equals(WHILE)) {
@@ -366,7 +386,7 @@ public class CS2ScriptParser {
             scope = new ScopeNode();
             flow = new IfElseNode(condition, scope, new ScopeNode());
         }
-
+        
         if (flow != null) {
             if (curr.equals(SCOPE_START)) {
                 advance();
@@ -377,9 +397,8 @@ public class CS2ScriptParser {
                 assert n != null : "Single statement or start of scope expected";
                 scope.write(n);
             }
-            if (flow instanceof IfElseNode && curr.equals("else")) {
+            if (flow instanceof IfElseNode ifelse && curr.equals("else")) {
                 advance();
-                IfElseNode ifelse = (IfElseNode) flow;
                 if (curr.equals(SCOPE_START)) {
                     advance();
                     readScope(ifelse.getElseScope());
@@ -428,22 +447,19 @@ public class CS2ScriptParser {
         return null;
     }
 
-
     public ExpressionNode parseExpressionStatement() {
         ExpressionList list = parseExpressionList();
         if (list != null) {
             int assignIdx = -1;
             LinkedList<Variable> vars = new LinkedList<>();
             ExpressionList actualAssign = new ExpressionList(new ArrayList<>());
-
+            
             List<CS2Type> assignedTypes = new ArrayList<>();
-
+            
             for (int i = 0; i < list.arguments.size(); i++) {
                 ExpressionNode arg = list.arguments.get(i);
                 if (arg instanceof VariableAssignationNode) {
-                    if (assignIdx != -1) {
-                        assert false : "Syntax error: Multiple assignments in expressionlist";
-                    }
+                    assert assignIdx == -1 : "Syntax error: Multiple assignments in expressionlist";
                     assignIdx = i;
                     assignedTypes.addAll(((VariableAssignationNode) arg).getExpression().getType().composite);
                 } else if (assignIdx != -1) {
@@ -503,7 +519,7 @@ public class CS2ScriptParser {
             }
             return new ExpressionList(expressions);
         }
-        return new ExpressionList(Arrays.asList(first));
+        return new ExpressionList(List.of(first));
     }
 
     public ExpressionNode parseExpression() {
@@ -512,7 +528,7 @@ public class CS2ScriptParser {
             return null;
         }
         //if curr == ,
-
+        
         Stack<ExpressionNode> operands = new Stack<>();
         Stack<Operator> operators = new Stack<>();
         operators.push(Operator.DUMMY_OP); //Simplifies algorithm. allows us to compare freely
@@ -543,7 +559,7 @@ public class CS2ScriptParser {
         if (operators.peek().type == MathExpressionNode.class) {
             ExpressionNode r = operands.pop();
             ExpressionNode l = operands.pop();
-
+            
             //Implicit int -> str conversion when concatenating. We can't do long because there is no opcode. for that
             if (operators.peek() == Operator.PLUS) {
                 if (l.getType() == CS2Type.STRING && r.getType().isCompatible(CS2Type.INT)) {
@@ -553,7 +569,7 @@ public class CS2ScriptParser {
                     l = new CallExpressionNode(opcodesDatabase.getInfo(4106), new ExpressionNode[]{l}, false);
                 }
             }
-
+            
             assert r.getType().isCompatible(l.getType()) : "Incompatible types " + l.getType() + " and " + r.getType() + " (" + l + ") " + operators.peek() + " (" + r + ")";
             if (l.getType() == CS2Type.STRING) {
                 BuildStringNode builder;
@@ -577,20 +593,19 @@ public class CS2ScriptParser {
         } else if (operators.peek().type == VariableAssignationNode.class) {
             ExpressionNode expr = operands.pop();
             ExpressionNode assignTo = operands.pop();
-            if (assignTo instanceof ArrayLoadNode) {
-                ArrayLoadNode load = (ArrayLoadNode) assignTo;
+            if (assignTo instanceof ArrayLoadNode load) {
                 operators.pop();
                 operands.push(new ArrayStoreNode(load.arrayId, load.getIndex(), expr));
             } else {
                 assert assignTo instanceof VariableLoadNode : "LHS is not assignable";
                 operators.pop(); //Always =
-
-
+                
+                
                 Variable var = declared.get(assignTo.toString());
                 if (var == null) {
                     var = GlobalVariable.parse(assignTo.toString());
                 }
-
+                
                 //TODO: Support += etc? probably not a good idea with multiple return values
                 operands.push(new VariableAssignationNode(var, expr));
             }
@@ -605,6 +620,7 @@ public class CS2ScriptParser {
         for (Operator op : Operator.values()) {
             if (op.text.startsWith(tok) && (!prefix || op.prefix)) {
                 isOp = true;
+                break;
             }
         }
         if (!isOp) {
@@ -653,7 +669,7 @@ public class CS2ScriptParser {
 //            return new UnaryExpr(prefix, expr);
             throw new DecompilerException("This unary operator is not supported yet " + prefix);
         }
-
+        
         if (curr.equals(LEFT_PAREN)) {
             advance();
             CS2Type cast = parseType();
@@ -675,17 +691,17 @@ public class CS2ScriptParser {
             advance();
             return expr;
         }
-
-
+        
+        
         ExpressionNode prim = parsePrimitive();
         if (prim != null) {
             return prim;
         }
-
+        
         if (isIdentifier(curr)) {
             String symbol = curr;
             advance();
-
+            
             ExpressionNode call = parseCall(symbol);
             if (call != null) {
                 while (curr.equals(DOT)) {
@@ -696,7 +712,7 @@ public class CS2ScriptParser {
                 }
                 return call;
             }
-
+            
             if (curr.equals(ARRAY_IDX_START)) {
                 advance();
                 ExpressionNode idx = parseExpression();
@@ -717,7 +733,7 @@ public class CS2ScriptParser {
                 assert symbol.length() == 6 : "Only global array 0-4 are valid";
                 int ga = symbol.charAt(5) - '0';
                 assert ga >= 0 && ga < 5 : "Only global array 0-4 are valid";
-
+                
                 assert curr.equals("=") : "Global array can not be directly referenced outside of initialization";
                 advance();
                 assert curr.equals("new") : "use new operator to initialize array";
@@ -732,13 +748,13 @@ public class CS2ScriptParser {
                 advance();
                 return new NewArrayNode(ga, size, arrayType);
             } else {
-
+                
                 assert declared.get(symbol) != null : "Variable not declared: " + symbol;
                 //Not a call. Just a variable load.
                 return new VariableLoadNode(declared.get(symbol));
             }
         }
-
+        
         //End of expression
         return null;
     }
@@ -748,7 +764,7 @@ public class CS2ScriptParser {
         if (curr.equals(DOT)) { //call on 'object' syntax
             //ASSERT IDENTIFIER/primitive hidden by widget(.., ..)
             assert declared.get(symbol) != null : "Variable not declared";
-
+            
             var = new VariableLoadNode(declared.get(symbol));
             advance();
             symbol = curr;
@@ -757,14 +773,14 @@ public class CS2ScriptParser {
         }
         return parseArgList(symbol, var);
     }
-
+    
     private ExpressionNode parseArgList(String symbol, ExpressionNode invokeOn) {
         List<ExpressionNode> args = new ArrayList<>();
         if (curr.equals(LEFT_PAREN)) {
             advance();
             while (true) {
-
-
+                
+                
                 ExpressionNode arg = parseScriptCallback();
                 if (arg == null)
                     arg = parseExpression();
@@ -777,7 +793,7 @@ public class CS2ScriptParser {
                     advance();
                     break;
                 }
-
+                
                 if (curr.equals(COMMA)) {
                     advance();
                 } else {
@@ -787,7 +803,7 @@ public class CS2ScriptParser {
             if (invokeOn != null) {
                 args.add(invokeOn);
             }
-
+            
             if (symbol.equals("color")) {
                 if (args.size() == 1) {
                     return new NewColorNode(args.get(0));
@@ -835,13 +851,6 @@ public class CS2ScriptParser {
         return null;
     }
 
-
-    private String curr = "";
-    private boolean returnWhitespace = false;
-    private int lineNumber = 1;
-    private int linePos = 0;
-    private StringBuilder currentLine = new StringBuilder();
-
     public String advance() {
         if (lexer.hasMoreTokens()) {
             if (curr.length() >= 1 && curr.charAt(0) != '\n') {
@@ -867,7 +876,6 @@ public class CS2ScriptParser {
         throw new DecompilerException("Unexpected EOF");
     }
 
-
     public CS2Type parseType() {
         for (CS2Type t : CS2Type.TYPE_LIST) {
             if (t.getName().equals(curr)) {
@@ -877,7 +885,7 @@ public class CS2ScriptParser {
         }
         return null;
     }
-
+    
     private boolean isType(String type) {
         for (CS2Type t : CS2Type.TYPE_LIST) {
             if (t.getName().equals(type)) {
@@ -892,7 +900,7 @@ public class CS2ScriptParser {
             return false;
         }
         //TODO: placeholders/keywords are not valid identifiers
-
+        
         char[] c = name.toCharArray();
         for (int i = 0; i < c.length; i++) {
             if (i == 0 && !Character.isJavaIdentifierStart(c[i]) && c[i] != '@') {
@@ -928,7 +936,7 @@ public class CS2ScriptParser {
             advance();
             return new BooleanExpressionNode(false);
         }
-
+        
         switch (value) {
             case "MOUSE_X":
                 advance();
@@ -958,7 +966,7 @@ public class CS2ScriptParser {
                 advance();
                 return new PlaceholderValueNode(value, -2147483639, CS2Type.CHAR);
         }
-
+        
         if (value.equals("'")) {
             advance();
             assert curr.length() == 1 : "Single char expected";
@@ -968,7 +976,7 @@ public class CS2ScriptParser {
             advance();
             return c;
         }
-
+        
         if (value.equals("null")) {
             advance();
             return new NullableIntExpressionNode(-1);
@@ -999,31 +1007,7 @@ public class CS2ScriptParser {
         }
         return null;
     }
-
-
-    public Predicate<String> REG_INT = Pattern.compile("^\\d+$").asPredicate();
-    public Predicate<String> REG_LONG = Pattern.compile("^\\d+[lL]$").asPredicate();
-    public Predicate<String> REG_COLOR = Pattern.compile("^0x([A-Fa-f0-9]{6})$").asPredicate();
-
-    public String COMMA = ",";
-    public String LEFT_PAREN = "(";
-    public String RIGHT_PAREN = ")";
-    public String SCOPE_START = "{";
-    public String SCOPE_END = "}";
-    public String ARRAY_IDX_START = "[";
-    public String ARRAY_IDX_END = "]";
-    public String SEMI = ";";
-    public String DOT = ".";
-
-    public String SWITCH = "switch";
-    public String WHILE = "while";
-    public String CASE = "case";
-    public String DEFAULT = "default";
-
-    public String TRUE = "true";
-    public String FALSE = "false";
-    public String NULL = "null";
     //TODO: Int literals widget(0,0) new Location(0,0,0) THESE CAN ALSO BE CALLED WITH AN EXPRESSION!! == cast
-
-
+    
+    
 }

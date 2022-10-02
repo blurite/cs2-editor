@@ -9,7 +9,7 @@ open class AutoCompleteItem(
     val returnType: CS2Type,
     val type: AutoCompleteItemType
 ) {
-
+    
     @SerializedName("display_name")
     open var displayName: String = ""
         get() {
@@ -18,13 +18,14 @@ open class AutoCompleteItem(
                     AutoCompleteItemType.METHOD -> {
                         "$name(...)"
                     }
+                    
                     else -> name
                 }
             } else {
                 field
             }
         }
-
+    
     override fun toString(): String {
         return displayName
     }

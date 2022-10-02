@@ -7,13 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ScopeNode extends ParentAbstractCodeNode {
-
-
+    
+    
     /**
      * Contains scope in which this scope is
      * declared or null if this scope is first.
      */
-    private ScopeNode parentScope;
+    private final ScopeNode parentScope;
     /**
      * Contains parent node or null if this scope doesn't have
      * parent node.
@@ -22,18 +22,18 @@ public class ScopeNode extends ParentAbstractCodeNode {
     /**
      * Contains list of declared local variables.
      */
-    private List<LocalVariable> declaredLocalVariables;
-
-
+    private final List<LocalVariable> declaredLocalVariables;
+    
+    
     public ScopeNode() {
         this(null);
     }
-
+    
     public ScopeNode(ScopeNode parent) {
         this.parentScope = parent;
         this.declaredLocalVariables = new ArrayList<LocalVariable>();
     }
-
+    
     /**
      * Declare's given local variable to this scope.
      *
@@ -42,11 +42,11 @@ public class ScopeNode extends ParentAbstractCodeNode {
      */
     public void declare(LocalVariable variable) throws DecompilerException {
         if (this.isDeclared(variable.getName())) {
-            throw new DecompilerException("Variable (" + variable.toString() + ") is already declared!");
+            throw new DecompilerException("Variable (" + variable + ") is already declared!");
         }
         this.declaredLocalVariables.add(variable);
     }
-
+    
     /**
      * Get's declared local variable from this scope or one of the parent scopes.
      * @param localName
@@ -67,7 +67,7 @@ public class ScopeNode extends ParentAbstractCodeNode {
 //		}
 //		throw new DecompilerException("Variable " + localName + " is not declared!");
 //    }
-
+    
     /**
      * Get's declared local variable from this scope or one of the parent scopes.
      *
@@ -86,7 +86,7 @@ public class ScopeNode extends ParentAbstractCodeNode {
         }
         throw new DecompilerException("Variable " + identifier + " is not declared!");
     }
-
+    
     public LocalVariable getLocalVariableByName(String name) {
         for (LocalVariable var : this.declaredLocalVariables) {
             if (var.getName().equals(name)) {
@@ -98,7 +98,7 @@ public class ScopeNode extends ParentAbstractCodeNode {
         }
         return null;
     }
-
+    
     /**
      * Get's if given local variable is declared in this
      * scope or in parent scopes.
@@ -117,8 +117,8 @@ public class ScopeNode extends ParentAbstractCodeNode {
         }
         return false;
     }
-
-
+    
+    
     /**
      * Get's if given local variable is declared in this
      * scope or in parent scopes.
@@ -137,14 +137,14 @@ public class ScopeNode extends ParentAbstractCodeNode {
         }
         return false;
     }
-
+    
     /**
      * Copies declared variables in this scope only.
      */
     public List<LocalVariable> copyDeclaredVariables() {
         return new ArrayList<LocalVariable>(this.declaredLocalVariables);
     }
-
+    
     /**
      * Get's if this scopeNode is empty.
      *
@@ -153,7 +153,7 @@ public class ScopeNode extends ParentAbstractCodeNode {
     public boolean isEmpty() {
         return this.size() <= 0;
     }
-
+    
     /**
      * Get's root (first) scope.
      */
@@ -162,11 +162,15 @@ public class ScopeNode extends ParentAbstractCodeNode {
             return this.parentScope.getRootScope();
         return this;
     }
-
+    
     public ScopeNode getParentScope() {
         return parentScope;
     }
-
+    
+    public AbstractCodeNode getParent() {
+        return parent;
+    }
+    
     /**
      * Find's controllable flow node to which target belongs.
      * Return's null if nothing was found.
@@ -192,11 +196,7 @@ public class ScopeNode extends ParentAbstractCodeNode {
     public void setParent(AbstractCodeNode parentInstruction) {
         this.parent = parentInstruction;
     }
-
-    public AbstractCodeNode getParent() {
-        return parent;
-    }
-
+    
     @Override
     public void print(CodePrinter printer) {
         printer.tab();
@@ -205,26 +205,26 @@ public class ScopeNode extends ParentAbstractCodeNode {
         printer.untab();
         printer.print("\r\n}");
     }
-
+    
     void printInline(CodePrinter printer) {
         for (LocalVariable var : this.declaredLocalVariables) {
             if (!var.isArgument())
-                printer.print("" + var.toString() + ";\r\n");
+                printer.print("" + var + ";\r\n");
         }
         List<AbstractCodeNode> childs = this.listChilds();
         boolean caseAnnotationTabbed = false;
         for (int i = 0; i < childs.size(); i++) {
             AbstractCodeNode node = childs.get(i);
-
+            
             if (i != childs.size() - 1 && (childs.get(i + 1) instanceof CaseAnnotation)) {
                 printer.untab();
                 caseAnnotationTabbed = true;
             }
             if (node instanceof CaseAnnotation) {
-
-
+                
+                
                 node.print(printer);
-
+                
             } else {
                 node.print(printer);
             }
@@ -235,10 +235,10 @@ public class ScopeNode extends ParentAbstractCodeNode {
                 caseAnnotationTabbed = false;
                 printer.tab();
             }
-
+            
         }
         if (caseAnnotationTabbed)
             printer.untab();
     }
-
+    
 }

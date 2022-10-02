@@ -3,7 +3,7 @@ package dawn.cs2.ast;
 import dawn.cs2.CodePrinter;
 
 public class IfElseNode extends AbstractCodeNode {
-
+    
     /**
      * Contains expressions for each scope.
      */
@@ -17,25 +17,25 @@ public class IfElseNode extends AbstractCodeNode {
      * were not met.
      */
     public ScopeNode elseScope;
-
-
+    
+    
     public IfElseNode(ExpressionNode expressions, ScopeNode ifScope, ScopeNode elseScope) {
         this.condition = expressions;
         this.ifScope = ifScope;
         this.elseScope = elseScope;
         elseScope.setParent(this);
     }
-
-
+    
+    
     public boolean hasElseScope() {
         return !this.elseScope.isEmpty();
     }
-
+    
     public ScopeNode getElseScope() {
         return elseScope;
     }
-
-
+    
+    
     @Override
     public void print(CodePrinter printer) {
         printer.print("if (");

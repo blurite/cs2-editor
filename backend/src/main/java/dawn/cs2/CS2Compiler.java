@@ -12,15 +12,15 @@ import java.util.List;
 import java.util.Map;
 
 public class CS2Compiler {
-
+    
     public FunctionNode function;
     public List<AbstractInstruction> instructions;
-
-    private Map<Integer, Integer> scramble;
+    
+    private final Map<Integer, Integer> scramble;
     private boolean supportEq01 = true;
     private boolean supportSwitch = true;
     private boolean supportLongs = true;
-
+    
     public CS2Compiler(FunctionNode function, Map<Integer, Integer> scramble, boolean disableSwitches, boolean disableLongs) {
         this.function = function;
         this.scramble = scramble;
@@ -28,18 +28,18 @@ public class CS2Compiler {
         this.supportSwitch = !disableSwitches && scramble.containsKey(Opcodes.SWITCH);
         this.supportLongs = !disableLongs && scramble.containsKey(Opcodes.PUSH_LONG);
     }
-
+    
     public byte[] compile(PrintWriter assembly) throws IOException {
-
-
+        
+        
         instructions = new LinkedList<>();
         compileNode(function.getMainScope());
         if (instructions.get(instructions.size() - 1).getOpcode() != Opcodes.RETURN) {
             instructions.add(new BooleanInstruction(Opcodes.RETURN, false));
         }
-
+        
         optimize();
-
+        
         //Finalize GOTO addresses by removing all dummy label instructions
         int addrC = 0;
         for (Iterator<AbstractInstruction> iterator = instructions.iterator(); iterator.hasNext(); ) {
@@ -90,7 +90,7 @@ public class CS2Compiler {
             } else {
                 throw new DecompilerException("");
             }
-
+            
         }
         output.writeInt(instructions.size());
         int locI = 0;
@@ -131,8 +131,7 @@ public class CS2Compiler {
             output.writeByte(switchCount);
             for (int addr = 0; addr < instructions.size(); addr++) {
                 AbstractInstruction instr = instructions.get(addr);
-                if (instr instanceof SwitchInstruction) {
-                    SwitchInstruction sw = (SwitchInstruction) instr;
+                if (instr instanceof SwitchInstruction sw) {
                     output.writeShort(sw.cases.size());
                     for (int c = 0; c < sw.cases.size(); c++) {
                         output.writeInt(sw.cases.get(c));
@@ -143,9 +142,9 @@ public class CS2Compiler {
             output.writeShort((short) (output.getOffset() - markSwitch));
         }
         return output.array();
-
+        
     }
-
+    
     private void compileNode(AbstractCodeNode node) {
         if (node instanceof PopableNode) {
             if (((PopableNode) node).getExpression() != null)
@@ -158,10 +157,9 @@ public class CS2Compiler {
             for (AbstractCodeNode child : ((ScopeNode) node).listChilds()) {
                 compileNode(child);
             }
-        } else if (node instanceof IfElseNode) {
-            IfElseNode i = (IfElseNode) node;
+        } else if (node instanceof IfElseNode i) {
             Label ifLabel = new Label();// labels++;
-
+            
             Label afterIf = new Label();
             Label elseLabel = new Label();
             if (!compileConditionalJmp(i.condition, ifLabel, i.hasElseScope() ? elseLabel : afterIf)) {
@@ -174,7 +172,7 @@ public class CS2Compiler {
                 }
                 instructions.add(new JumpInstruction(Opcodes.GOTO, i.hasElseScope() ? elseLabel : afterIf));
             }
-
+            
             //For IF and ELSE scopes
             //Original compiler emits EQ1 IF, GOTO ELSE,  L_IF: ...     GOTO AFTERIF, L_ELSE: ... , L_AFTERIF
             //We do (after optimizer) EQ1 IF, L_ELSE: ... GOTO AFTERIF, L_IF: ...,    L_AFTERIF
@@ -182,20 +180,19 @@ public class CS2Compiler {
             //Original compiler emits EQ1 IF, GOTO AFTERIF, L_IF: ... L_AFTERIF
             //We do the same. Following would be shorter but not valid due to null booleans:
             //                        EQ0 AFTERIF, L_IF: ... L_AFTERIF
-
+            
             if (i.hasElseScope()) {
                 instructions.add(elseLabel);
                 //ELSE BODY
                 compileNode(i.elseScope);
                 instructions.add(new JumpInstruction(Opcodes.GOTO, afterIf));
             }
-
+            
             instructions.add(ifLabel);
             //IF BODY
             compileNode(i.ifScope);
             instructions.add(afterIf);
-        } else if (node instanceof LoopNode) {
-            LoopNode loop = (LoopNode) node;
+        } else if (node instanceof LoopNode loop) {
             assert loop.getType() == LoopNode.LOOPTYPE_WHILE : "Other loops not implemented";
             Label conditionLabel = new Label();
             Label bodyLabel = new Label();
@@ -216,11 +213,10 @@ public class CS2Compiler {
             compileNode(loop.getScope());
             instructions.add(new JumpInstruction(Opcodes.GOTO, conditionLabel));
             instructions.add(afterWhile);
-        } else if (node instanceof SwitchNode) {
+        } else if (node instanceof SwitchNode sw) {
             if (!supportSwitch) {
                 throw new DecompilerException("Switch blocks are not supported in this revision!");
             }
-            SwitchNode sw = (SwitchNode) node;
             compileExpression(sw.getExpression());
             sw.getScope().setCodeAddress(0);
             AbstractCodeNode c;
@@ -229,11 +225,11 @@ public class CS2Compiler {
             Label defCase = new Label();
             List<Label> labels = new LinkedList<>();
             List<Integer> cases = new LinkedList<>();
-
+            
             SwitchInstruction instr = new SwitchInstruction(Opcodes.SWITCH, cases, labels);
             instructions.add(instr);
             instructions.add(new JumpInstruction(Opcodes.GOTO, defCase));
-
+            
             while ((c = sw.getScope().read()) != null) {
                 if (c instanceof CaseAnnotation) {
                     if (caseEntry == null) {
@@ -272,13 +268,12 @@ public class CS2Compiler {
             throw new DecompilerException("unhandled node " + node);
         }
     }
-
+    
     private boolean compileConditionalJmp(ExpressionNode expr, Label ifJump, Label elseJump) {
-        if (expr instanceof ConditionalExpressionNode) {
-            ConditionalExpressionNode c = (ConditionalExpressionNode) expr;
-
+        if (expr instanceof ConditionalExpressionNode c) {
+    
             ExpressionNode l = c.getLeft();
-
+            
             // LOGIC OR AND
             if (c.conditional == Operator.OR || c.conditional == Operator.AND) {
                 Label secondaryCondition = new Label();
@@ -307,19 +302,19 @@ public class CS2Compiler {
                 }
                 return true;
             }
-
+            
             boolean longInstr = l.getType() == CS2Type.LONG;
             assert longInstr || l.getType().isCompatible(CS2Type.INT);
-
+            
             // LOGIC COMPARISONS
             compileExpression(l, false);
             ExpressionNode r = c.getRight();
             assert r.getType().isCompatible(longInstr ? CS2Type.LONG : CS2Type.INT);
-
+            
             assert (l.getType() == CS2Type.BOOLEAN) == (r.getType() == CS2Type.BOOLEAN) : "Cannot compare boolean and non boolean expression";
-
+            
             compileExpression(r, false);
-
+            
             int op = -1;
             switch (c.conditional) {
                 case NEQ:
@@ -347,8 +342,7 @@ public class CS2Compiler {
             instructions.add(new JumpInstruction(Opcodes.GOTO, elseJump));
             return true;
         } else {
-            if (expr instanceof BooleanConditionalExpressionNode) {
-                BooleanConditionalExpressionNode bool = (BooleanConditionalExpressionNode) expr;
+            if (expr instanceof BooleanConditionalExpressionNode bool) {
                 if (bool.invert) { //invert ? swap jumps.
                     if (!compileConditionalJmp(bool.getCondition(), elseJump, ifJump)) {
                         assert bool.getCondition().getType().isCompatible(CS2Type.INT); //TODO: if long we need to PUSH 1L, LONG_EQ, but
@@ -380,28 +374,26 @@ public class CS2Compiler {
             if (expr.getType() != CS2Type.BOOLEAN) {
                 throw new DecompilerException("Condition requires boolean expression: " + expr);
             }
-
+            
             //Part of a comparison (not logic)
             compileExpression(expr);
             return false;
         }
     }
-
+    
     private void compileExpression(ExpressionNode expression) {
         compileExpression(expression, false);
     }
-
+    
     private void compileExpression(ExpressionNode expression, boolean pop) {
         //Most expressions ignore the popable flag, and just assert what is expected. for example this makes it so int1 = int2 = 5 is not supported yet
-        if (expression instanceof CallExpressionNode) {
-            CallExpressionNode call = (CallExpressionNode) expression;
+        if (expression instanceof CallExpressionNode call) {
             boolean constant = false;
-
+            
             int op = call.info.id;
             for (ExpressionNode arg : call.arguments) {
-                if (arg instanceof VariableLoadNode) {
+                if (arg instanceof VariableLoadNode loadArg) {
                     //Special argument. this is not an actual argument
-                    VariableLoadNode loadArg = (VariableLoadNode) arg;
                     if (loadArg.getVariable() == LocalVariable._CHILD) {
                         constant = true;
                         continue;
@@ -436,9 +428,8 @@ public class CS2Compiler {
                     }
                 }
             }
-        } else if (expression instanceof CallbackExpressionNode) {
+        } else if (expression instanceof CallbackExpressionNode callback) {
             assert !pop : "Not a statement " + expression;
-            CallbackExpressionNode callback = (CallbackExpressionNode) expression;
             StringBuilder types = new StringBuilder();
             if (callback.call == null) {
                 instructions.add(new IntInstruction(Opcodes.PUSH_INT, -1));
@@ -457,19 +448,17 @@ public class CS2Compiler {
                 instructions.add(new IntInstruction(Opcodes.PUSH_INT, callback.trigger.arguments.size()));
                 types.append("Y");
             }
-
+            
             instructions.add(new StringInstruction(Opcodes.PUSH_STRING, types.toString()));
         } else if (expression instanceof ExpressionList) {
 //            assert !pop : "Not a statement " + expression;
             for (ExpressionNode sub : ((ExpressionList) expression).arguments) {
                 compileExpression(sub, pop);
             }
-        } else if (expression instanceof MathExpressionNode) {
+        } else if (expression instanceof MathExpressionNode math) {
             assert !pop : "Not a statement " + expression;
-            MathExpressionNode math = (MathExpressionNode) expression;
-            if (math.operator == Operator.DIV && math.getLeft() instanceof MathExpressionNode && ((MathExpressionNode) math.getLeft()).operator == Operator.MUL) {
+            if (math.operator == Operator.DIV && math.getLeft() instanceof MathExpressionNode left && ((MathExpressionNode) math.getLeft()).operator == Operator.MUL) {
                 //Optimization for MULDIV opcode 4018 ('scale')
-                MathExpressionNode left = (MathExpressionNode) math.getLeft();
                 compileExpression(left.getLeft());
                 compileExpression(math.getRight());
                 compileExpression(left.getRight());
@@ -484,25 +473,20 @@ public class CS2Compiler {
         } else if (expression instanceof PlaceholderValueNode) {
             assert !pop : "Not a statement " + expression;
             instructions.add(new IntInstruction(Opcodes.PUSH_INT, ((PlaceholderValueNode) expression).magic));
-        } else if (expression instanceof NewWidgetPointerNode) {
+        } else if (expression instanceof NewWidgetPointerNode w) {
             assert !pop : "Not a statement " + expression;
-            NewWidgetPointerNode w = (NewWidgetPointerNode) expression;
             compileExpression(w.getExpression());
-        } else if (expression instanceof NewLocationNode) {
+        } else if (expression instanceof NewLocationNode l) {
             assert !pop : "Not a statement " + expression;
-            NewLocationNode l = (NewLocationNode) expression;
             compileExpression(l.getExpression());
-        } else if (expression instanceof NewColorNode) {
+        } else if (expression instanceof NewColorNode c) {
             assert !pop : "Not a statement " + expression;
-            NewColorNode c = (NewColorNode) expression;
             compileExpression(c.getExpression());
-        } else if (expression instanceof CharExpressionNode) {
+        } else if (expression instanceof CharExpressionNode c) {
             assert !pop : "Not a statement " + expression;
-            CharExpressionNode c = (CharExpressionNode) expression;
             instructions.add(new IntInstruction(Opcodes.PUSH_INT, c.getData()));
-        } else if (expression instanceof CastNode) {
+        } else if (expression instanceof CastNode c) {
             assert !pop : "Not a statement " + expression;
-            CastNode c = (CastNode) expression;
             assert c.getType().isCompatible(c.getExpression().getType()) : "Incompatible types????";
             compileExpression(c.getExpression());
         } else if (expression instanceof IntExpressionNode) {
@@ -520,10 +504,9 @@ public class CS2Compiler {
         } else if (expression instanceof StringExpressionNode) {
             assert !pop : "Not a statement " + expression;
             instructions.add(new StringInstruction(Opcodes.PUSH_STRING, ((StringExpressionNode) expression).getData()));
-        } else if (expression instanceof BuildStringNode) {
+        } else if (expression instanceof BuildStringNode build) {
             assert !pop : "Not a statement " + expression;
             //TODO: If multiple literals, we can just merge them at compile time this happens a lot because all tags (<br> <col>) appear in seperate strings (they have some special syntax for it i guess)
-            BuildStringNode build = (BuildStringNode) expression;
             for (ExpressionNode n : build.arguments) {
                 compileExpression(n);
             }
@@ -531,9 +514,8 @@ public class CS2Compiler {
         } else if (expression instanceof VariableLoadNode) {
             assert !pop : "Not a statement " + expression;
             instructions.add(((VariableLoadNode) expression).getVariable().generateLoadInstruction());
-        } else if (expression instanceof VariableAssignationNode) {
+        } else if (expression instanceof VariableAssignationNode store) {
             assert pop;
-            VariableAssignationNode store = (VariableAssignationNode) expression;
             if (store.getExpression() == null) {
                 return;
             }
@@ -544,20 +526,17 @@ public class CS2Compiler {
                 Variable var = store.variables.get(i);
                 instructions.add(var.generateStoreInstruction());
             }
-        } else if (expression instanceof NewArrayNode) {
+        } else if (expression instanceof NewArrayNode init) {
             assert pop;
-            NewArrayNode init = (NewArrayNode) expression;
             compileExpression(init.getExpression());
             instructions.add(new IntInstruction(Opcodes.ARRAY_NEW, init.arrayId << 16 | init.getType().charDesc));
-        } else if (expression instanceof ArrayStoreNode) {
+        } else if (expression instanceof ArrayStoreNode store) {
             assert pop;
-            ArrayStoreNode store = (ArrayStoreNode) expression;
             compileExpression(store.getIndex());
             compileExpression(store.getValue());
             instructions.add(new IntInstruction(Opcodes.ARRAY_STORE, store.arrayId));
-        } else if (expression instanceof ArrayLoadNode) {
+        } else if (expression instanceof ArrayLoadNode load) {
             assert !pop : "Not a statement " + expression;
-            ArrayLoadNode load = (ArrayLoadNode) expression;
             compileExpression(load.getIndex());
             instructions.add(new IntInstruction(Opcodes.ARRAY_LOAD, load.arrayId));
         } else if (expression instanceof ConditionalExpressionNode) {
@@ -582,7 +561,7 @@ public class CS2Compiler {
             throw new DecompilerException("unhandled expr " + expression);
         }
     }
-
+    
     private void optimize() {
         int size = 0;
         while (size != (size = instructions.size())) {
@@ -611,7 +590,7 @@ public class CS2Compiler {
                         continue;
                     }
                 }
-
+                
                 //Switch CONDJMP X GOTO Y L_X: ... TO INVERSE_CONDJMP Y L_X: ... (where a inverse conditional jump instr exists).
                 // This optimization causes a lot of issues for the decompiler loop detection though
                 if (false) {
@@ -647,12 +626,12 @@ public class CS2Compiler {
                         }
                     }
                 }
-
+                
             }
-
+            
         }
     }
-
+    
     private void rewriteJumps(Label oldJump, Label newJump) {
         for (AbstractInstruction instr : instructions) {
             if (instr instanceof JumpInstruction) {
@@ -670,5 +649,5 @@ public class CS2Compiler {
             }
         }
     }
-
+    
 }

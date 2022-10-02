@@ -9,17 +9,17 @@ import dawn.cs2.util.FunctionInfo;
 import java.util.stream.IntStream;
 
 public class CS2Decompiler {
-
-    private CS2 cs2;
-    private FunctionNode function;
-    private FunctionDatabase opcodesDatabase;
-    private FunctionDatabase scriptsDatabase;
+    
+    private final CS2 cs2;
+    private final FunctionNode function;
+    private final FunctionDatabase opcodesDatabase;
+    private final FunctionDatabase scriptsDatabase;
 
 //    public CS2Decompiler(CS2 cs2) {
 //        this(cs2, new FunctionDatabase(new File("rs2_new.ini"), false), new FunctionDatabase(new File("scripts_db.ini"), true));
 //    }
-
-
+    
+    
     public CS2Decompiler(CS2 cs2, FunctionDatabase opcodesDatabase, FunctionDatabase scriptsDatabase) {
         this.opcodesDatabase = opcodesDatabase;
         this.scriptsDatabase = scriptsDatabase;
@@ -32,23 +32,23 @@ public class CS2Decompiler {
         }
         this.function = new FunctionNode(info.getName(), info.getArgumentTypes(), info.getReturnType(), new ScopeNode());
     }
-
-
+    
+    
     public void decompile() throws DecompilerException {
         this.declareAllVariables();
         FlowBlocksGenerator generator = new FlowBlocksGenerator(this);
         generator.generate();
-
+        
         ControlFlowSolver main = new ControlFlowSolver(this, function.getMainScope(), generator.getBlocks());
         main.solve();
     }
-
+    
     public void optimize() {
-
+    
     }
-
+    
     private void declareAllVariables() {
-
+        
         int i = 0, ic = 0, sc = 0, lc = 0;
         for (; i < function.getArguments().length; i++) {
             CS2Type argument = function.getArguments()[i];
@@ -69,8 +69,8 @@ public class CS2Decompiler {
             }
         }
         if (ic != cs2.getIntArgumentsCount() || sc != cs2.getStringArgumentsCount() || lc != cs2.getLongArgumentsCount())
-            throw new RuntimeException("Expected signature " + function.toString()+" binary args i"+cs2.getIntArgumentsCount()+" s"+cs2.getStringArgumentsCount()+" l"+cs2.getLongArgumentsCount());
-
+            throw new RuntimeException("Expected signature " + function.toString() + " binary args i" + cs2.getIntArgumentsCount() + " s" + cs2.getStringArgumentsCount() + " l" + cs2.getLongArgumentsCount());
+        
         for (int j = cs2.getIntArgumentsCount(); j < cs2.getIntLocalsSize(); j++) {
             LocalVariable var = new LocalVariable("int" + i++, CS2Type.INT);
             var.setIdentifier(LocalVariable.makeIdentifier(j, 0));
@@ -87,23 +87,23 @@ public class CS2Decompiler {
             this.function.getMainScope().declare(var);
         }
     }
-
-
+    
+    
     public CS2 getCs2() {
         return cs2;
     }
-
+    
     public FunctionNode getFunction() {
         return function;
     }
-
+    
     public FunctionDatabase getOpcodesDatabase() {
         return opcodesDatabase;
     }
-
+    
     public FunctionDatabase getScriptsDatabase() {
         return scriptsDatabase;
     }
-
-
+    
+    
 }

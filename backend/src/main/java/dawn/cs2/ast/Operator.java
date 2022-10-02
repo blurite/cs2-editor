@@ -1,7 +1,7 @@
 package dawn.cs2.ast;
 
 public enum Operator {
-
+    
     PLUS("+", ExpressionNode.PRIORITY_ADDSUB, MathExpressionNode.class, 2),
     MINUS("-", ExpressionNode.PRIORITY_ADDSUB, MathExpressionNode.class, 2),
     MUL("*", ExpressionNode.PRIORITY_MULDIVREM, MathExpressionNode.class, 2),
@@ -25,21 +25,21 @@ public enum Operator {
     AND("&&", ExpressionNode.PRIORITY_LOGICALAND, ConditionalExpressionNode.class, 2),
     ASSIGN("=", ExpressionNode.PRIORITY_ASSIGNMENT, VariableAssignationNode.class, 2, false, true),
     //TODO: += etc
-
+    
     DUMMY_OP("", 99, ExpressionNode.class, 0);
-
-
+    
+    
     public final String text;
     public final int priority;
     public final Class<? extends ExpressionNode> type;
     public final int operands;
     public boolean prefix;
     public boolean assocRight;
-
+    
     Operator(String text, int prio, Class<? extends ExpressionNode> type, int operands) {
         this(text, prio, type, operands, false, false);
     }
-
+    
     Operator(String text, int prio, Class<? extends ExpressionNode> type, int operands, boolean prefix, boolean assocRight) {
         this.text = text;
         this.priority = prio;
@@ -48,7 +48,7 @@ public enum Operator {
         this.prefix = prefix;
         this.assocRight = assocRight;
     }
-
+    
     @Override
     public String toString() {
         return text;

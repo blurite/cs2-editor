@@ -7,10 +7,10 @@ import java.net.URL
 import java.util.*
 
 class AboutController : Initializable {
-
+    
     @FXML
     private lateinit var textArea: TextArea
-
+    
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         textArea.text = """
         Displee's CS2 editor 1.1

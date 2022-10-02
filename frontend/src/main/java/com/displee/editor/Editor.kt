@@ -32,10 +32,10 @@ fun setIcons(stage: Stage) {
         println("System tray is not supported")
         return
     }
-
+    
     // get the systemTray of the system
     val systemTray = SystemTray.getSystemTray()
-
+    
     // get default toolkit
     // Toolkit toolkit = Toolkit.getDefaultToolkit();
     // get image
@@ -47,10 +47,10 @@ fun setIcons(stage: Stage) {
     } catch (e: IOException) {
         e.printStackTrace()
     }
-
+    
     // setting tray icon
     val trayIcon = TrayIcon(image, "Cs2 com.displee.editor.Editor")
-
+    
     // adjust to default size as per system recommendation
     trayIcon.isImageAutoSize = true
     try {
@@ -61,13 +61,13 @@ fun setIcons(stage: Stage) {
 }
 
 class Editor : Application() {
-
+    
     override fun start(stage: Stage) {
         mainController = MainController()
         val loader = FXMLLoader(Editor::class.java.getResource("/fxml/main.fxml"))
         loader.setController(mainController)
         val root = loader.load<Parent>()
-
+        
         stage.scene = Scene(root, 1200.0, 800.0).also {
             it.stylesheets.add("/css/theme.css")
             it.stylesheets.add("/css/custom.css")

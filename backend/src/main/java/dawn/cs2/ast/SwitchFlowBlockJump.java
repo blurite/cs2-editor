@@ -5,31 +5,31 @@ import dawn.cs2.CodePrinter;
 import java.util.List;
 
 public class SwitchFlowBlockJump extends AbstractCodeNode {
-
-
-    private ExpressionNode expression;
-    private List<Integer> cases;
-    private List<FlowBlock> targets;
-
+    
+    
+    private final ExpressionNode expression;
+    private final List<Integer> cases;
+    private final List<FlowBlock> targets;
+    
     public SwitchFlowBlockJump(ExpressionNode expr, List<Integer> cases, List<FlowBlock> targets) {
         this.expression = expr;
         this.cases = cases;
         this.targets = targets;
     }
-
-
+    
+    
     public ExpressionNode getExpression() {
         return expression;
     }
-
+    
     public List<Integer> getCases() {
         return cases;
     }
-
+    
     public List<FlowBlock> getTargets() {
         return targets;
     }
-
+    
     @Override
     public void print(CodePrinter printer) {
         printer.print("SWITCH (");
@@ -41,6 +41,6 @@ public class SwitchFlowBlockJump extends AbstractCodeNode {
         }
         printer.untab();
         printer.print("\r\n}");
-
+        
     }
 }

@@ -6,7 +6,7 @@ import dawn.cs2.CS2Type.*
  * @author Corey
  */
 object DbTableTypeRepo {
-
+    
     val mappings = mapOf(
         0 to arrayOf(INT),
         16 to arrayOf(STRING),

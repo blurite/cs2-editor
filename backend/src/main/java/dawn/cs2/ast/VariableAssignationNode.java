@@ -7,40 +7,40 @@ import java.util.LinkedList;
 import java.util.stream.Collectors;
 
 public class VariableAssignationNode extends ExpressionNode {
-
+    
     public LinkedList<Variable> variables;
-    private ExpressionNode expression;
-
+    private final ExpressionNode expression;
+    
     public VariableAssignationNode(Variable variable, ExpressionNode expr) {
         this(new LinkedList<>(), expr);
         variables.add(variable);
     }
-
+    
     public VariableAssignationNode(LinkedList<Variable> variables, ExpressionNode expr) {
         this.expression = expr;
         this.variables = variables;
     }
-
+    
     @Override
     public int getPriority() {
         return PRIORITY_ASSIGNMENT;
     }
-
+    
     @Override
     public CS2Type getType() {
         return CS2Type.of(variables.stream().map(Variable::getType).collect(Collectors.toList()));
     }
-
+    
     @Override
     public ExpressionNode copy() {
         return new VariableAssignationNode(new LinkedList<>(variables), expression == null ? null : this.expression.copy());
     }
-
-
+    
+    
     public ExpressionNode getExpression() {
         return expression;
     }
-
+    
     @Override
     public void print(CodePrinter printer) {
         boolean first = true;
@@ -64,5 +64,5 @@ public class VariableAssignationNode extends ExpressionNode {
             }
         }
     }
-
+    
 }
