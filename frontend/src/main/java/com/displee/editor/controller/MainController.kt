@@ -60,6 +60,9 @@ class MainController : Initializable {
     private lateinit var buildMenuItem: MenuItem
     
     @FXML
+    private lateinit var exportSignatures: MenuItem
+    
+    @FXML
     private lateinit var showAssemblyMenuItem: CheckMenuItem
     
     @FXML
@@ -127,6 +130,9 @@ class MainController : Initializable {
         }
         buildMenuItem.setOnAction {
             packScript()
+        }
+        exportSignatures.setOnAction {
+            exportSignatures()
         }
         showAssemblyMenuItem.setOnAction {
             if (showAssemblyMenuItem.isSelected) {
@@ -337,6 +343,7 @@ class MainController : Initializable {
             saveDecompiled.isDisable = false
             saveCompiled.isDisable = false
             buildMenuItem.isDisable = false
+            exportSignatures.isDisable = false
         }
     }
     
@@ -510,6 +517,17 @@ class MainController : Initializable {
         }
     }
     
+    private fun exportSignatures() {
+        val outputDir = DirectoryChooser().showDialog(mainWindow()) ?: return
+        val outputFile = outputDir.toPath() / "script-signatures.txt"
+    
+        printConsoleMessage("Generating signatures")
+        val database = scriptConfiguration.generateScriptsDatabase(cacheLibrary, loop = 10)
+        
+        outputFile.writeText(database.source)
+        Notification.info("Successfully exported signatures to ${outputFile}.")
+    }
+    
     private fun printConsoleMessage(line: String?) {
         compileArea.text = timeFormat.format(Date.from(Instant.now())) + " -> " + line + System.lineSeparator() + compileArea.text
     }
@@ -541,6 +559,7 @@ class MainController : Initializable {
         saveDecompiled.isDisable = true
         saveCompiled.isDisable = true
         buildMenuItem.isDisable = true
+        exportSignatures.isDisable = true
     }
     
     private fun status(status: String) {

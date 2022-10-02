@@ -28,6 +28,7 @@
                         <MenuItem fx:id="saveDecompiled" disable="true" mnemonicParsing="false" text="Save Decompiled (Ctrl + S)"/>
                         <MenuItem fx:id="saveCompiled" disable="true" mnemonicParsing="false" text="Save Compiled"/>
                         <MenuItem fx:id="buildMenuItem" disable="true" mnemonicParsing="false" text="Pack Script (Ctrl + D)"/>
+                        <MenuItem fx:id="exportSignatures" disable="true" mnemonicParsing="false" text="Export script signatures"/>
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="View">
