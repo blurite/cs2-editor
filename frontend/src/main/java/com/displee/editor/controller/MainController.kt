@@ -329,7 +329,7 @@ class MainController : Initializable {
     
     private fun createScriptConfigurations() {
         status("guessing script configuration...")
-        opcodesDatabase = FunctionDatabase(javaClass.getResourceAsStream(scriptConfiguration.opcodeDatabase), false, scriptConfiguration.scrambled)
+        opcodesDatabase = FunctionDatabase.createOpcodeDatabase()
         status("generating script signatures...")
         scriptsDatabase = scriptConfiguration.generateScriptsDatabase(cacheLibrary)
         status("generating auto complete items...")
@@ -459,7 +459,7 @@ class MainController : Initializable {
         val outputFile = outputDir.toPath() / "${script.scriptID}.dat"
         
         val function = CS2ScriptParser.parse(activeCodeArea.text, opcodesDatabase, scriptsDatabase)
-        val compiler = CS2Compiler(function, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+        val compiler = CS2Compiler(function)
         val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
         outputFile.writeBytes(compiled)
         

@@ -1,6 +1,8 @@
 package dawn.cs2.util;
 
+import dawn.cs2.CS2ConstantsKt;
 import dawn.cs2.CS2Type;
+import dawn.cs2.ScriptConfiguration;
 
 import java.io.*;
 import java.util.*;
@@ -100,4 +102,14 @@ public class FunctionDatabase {
     public String getSource() {
         return source;
     }
+    
+    public static FunctionDatabase createOpcodeDatabase() {
+        return createOpcodeDatabase(CS2ConstantsKt.getScriptConfiguration());
+    }
+    
+    public static FunctionDatabase createOpcodeDatabase(final ScriptConfiguration scriptConfiguration) {
+        final var resource = new FunctionDatabase();
+        return new FunctionDatabase(resource.getClass().getResourceAsStream(scriptConfiguration.getOpcodeDatabase()), false, scriptConfiguration.getScrambled());
+    }
+    
 }

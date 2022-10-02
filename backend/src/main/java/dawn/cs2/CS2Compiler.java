@@ -21,6 +21,14 @@ public class CS2Compiler {
     private boolean supportSwitch = true;
     private boolean supportLongs = true;
     
+    public CS2Compiler(FunctionNode function) {
+        this.function = function;
+        this.scramble = CS2ConstantsKt.getScriptConfiguration().getScrambled();
+        this.supportEq01 = scramble.containsKey(Opcodes.EQ0);
+        this.supportSwitch = !CS2ConstantsKt.getScriptConfiguration().getDisableSwitches() && scramble.containsKey(Opcodes.SWITCH);
+        this.supportLongs = !CS2ConstantsKt.getScriptConfiguration().getDisableLongs() && scramble.containsKey(Opcodes.PUSH_LONG);
+    }
+    
     public CS2Compiler(FunctionNode function, Map<Integer, Integer> scramble, boolean disableSwitches, boolean disableLongs) {
         this.function = function;
         this.scramble = scramble;
