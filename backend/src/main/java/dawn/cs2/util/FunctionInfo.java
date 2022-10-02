@@ -1,7 +1,7 @@
 package dawn.cs2.util;
 
-import dawn.cs2.CS2Type;
 import dawn.cs2.ast.FunctionNode;
+import dawn.cs2.CS2Type;
 
 public class FunctionInfo {
 

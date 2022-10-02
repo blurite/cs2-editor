@@ -1,7 +1,5 @@
 package dawn.cs2.instructions;
 
-import dawn.cs2.util.FunctionInfo;
-
 public class IntInstruction extends AbstractInstruction {
 
     private int constant;

@@ -3,16 +3,13 @@ package dawn.cs2;
 
 import dawn.cs2.ast.*;
 import dawn.cs2.util.FunctionDatabase;
-import dawn.cs2.util.FunctionInfo;
 import dawn.cs2.util.TextUtils;
+import dawn.cs2.ast.*;
+import dawn.cs2.util.FunctionInfo;
 
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-
-import static dawn.cs2.ast.LocalVariable.CHILD;
-import static dawn.cs2.ast.LocalVariable._CHILD;
-import static dawn.cs2.ast.LoopNode.LOOPTYPE_WHILE;
 
 public class CS2ScriptParser {
 
@@ -44,8 +41,8 @@ public class CS2ScriptParser {
         this.opcodesDatabase = opcodesDatabase;
         this.scriptsDatabase = scriptsDatabase;
         //TODO: Abstract LocalVariable away etc
-        declared.put("CHILD", CHILD);
-        declared.put("_CHILD", _CHILD);
+        declared.put("CHILD", LocalVariable.CHILD);
+        declared.put("_CHILD", LocalVariable._CHILD);
         declared.put("_", Underscore.UNDERSCORE);
     }
 
@@ -182,7 +179,7 @@ public class CS2ScriptParser {
 //                signature.addAll(Arrays.asList(((CallbackExpressionNode) arg).call.info.getArgumentTypes()));
 //            } else {
             if (arg instanceof VariableLoadNode) {
-                if (((VariableLoadNode) arg).getVariable() == CHILD || ((VariableLoadNode) arg).getVariable() == _CHILD) {
+                if (((VariableLoadNode) arg).getVariable() == LocalVariable.CHILD || ((VariableLoadNode) arg).getVariable() == LocalVariable._CHILD) {
                     continue;
                 }
             }
@@ -360,7 +357,7 @@ public class CS2ScriptParser {
             assert curr.equals(LEFT_PAREN);
             ExpressionNode condition = parseExpression();
             scope = new ScopeNode();
-            flow = new LoopNode(LOOPTYPE_WHILE, scope, condition);
+            flow = new LoopNode(LoopNode.LOOPTYPE_WHILE, scope, condition);
         }
         if (curr.equals("if")) {
             advance();

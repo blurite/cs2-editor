@@ -2,19 +2,15 @@ package dawn.cs2;
 
 import dawn.cs2.ast.*;
 import dawn.cs2.instructions.*;
-import dawn.cs2.repo.DbTableTypeRepo;
-import dawn.cs2.util.FunctionInfo;
 import dawn.cs2.util.IOUtils;
 import dawn.cs2.util.OpcodeUtils;
-import kotlin.ranges.RangesKt;
+import dawn.cs2.repo.DbTableTypeRepo;
+import dawn.cs2.util.FunctionInfo;
 import org.apache.commons.lang3.Range;
 
 import java.io.*;
-import java.time.temporal.ValueRange;
 import java.util.*;
 
-import static dawn.cs2.ast.LocalVariable.CHILD;
-import static dawn.cs2.ast.LocalVariable._CHILD;
 import static dawn.cs2.instructions.Opcodes.*;
 
 public class FlowBlocksGenerator {
@@ -567,7 +563,7 @@ public class FlowBlocksGenerator {
 
         ExpressionNode[] args = new ExpressionNode[info.getArgumentTypes().length + (objCall ? 1 : 0)];
         if (objCall) {
-            args[info.getArgumentTypes().length] = new VariableLoadNode(useReg1 ? _CHILD : CHILD);
+            args[info.getArgumentTypes().length] = new VariableLoadNode(useReg1 ? LocalVariable._CHILD : LocalVariable.CHILD);
         }
 //        objCall = false; //TODO: DISABLED THIS. not sure if its a good idea or not to have this. widget1.setText("test") vs setText("test", widget1) Should refactor this if gonna use this!
         for (int i = info.getArgumentTypes().length - 1; i >= 0; i--) {

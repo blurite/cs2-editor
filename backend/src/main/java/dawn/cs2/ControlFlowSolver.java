@@ -1,6 +1,7 @@
 package dawn.cs2;
 
 import dawn.cs2.ast.*;
+import dawn.cs2.ast.*;
 
 import java.util.ArrayList;
 import java.util.List;

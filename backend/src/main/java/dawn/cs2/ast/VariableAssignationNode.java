@@ -3,9 +3,7 @@ package dawn.cs2.ast;
 import dawn.cs2.CS2Type;
 import dawn.cs2.CodePrinter;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class VariableAssignationNode extends ExpressionNode {

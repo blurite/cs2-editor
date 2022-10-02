@@ -49,7 +49,7 @@ fun setIcons(stage: Stage) {
     }
 
     // setting tray icon
-    val trayIcon = TrayIcon(image, "Cs2 Editor")
+    val trayIcon = TrayIcon(image, "Cs2 com.displee.editor.Editor")
 
     // adjust to default size as per system recommendation
     trayIcon.isImageAutoSize = true

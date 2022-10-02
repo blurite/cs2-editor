@@ -1,10 +1,10 @@
 package dawn.cs2.ast;
 
+import dawn.cs2.instructions.IntInstruction;
 import dawn.cs2.CS2Type;
 import dawn.cs2.DecompilerException;
 import dawn.cs2.instructions.AbstractInstruction;
 import dawn.cs2.instructions.BooleanInstruction;
-import dawn.cs2.instructions.IntInstruction;
 import dawn.cs2.instructions.Opcodes;
 
 public class Underscore implements Variable {

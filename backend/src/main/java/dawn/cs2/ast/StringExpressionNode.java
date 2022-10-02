@@ -1,8 +1,8 @@
 package dawn.cs2.ast;
 
+import dawn.cs2.util.TextUtils;
 import dawn.cs2.CS2Type;
 import dawn.cs2.CodePrinter;
-import dawn.cs2.util.TextUtils;
 
 public class StringExpressionNode extends ExpressionNode /*implements IIntConstantNode<String>*/ {
 
