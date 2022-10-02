@@ -8,7 +8,7 @@ plugins {
 }
 
 allprojects {
-    group = "cs2-editor"
+    group = "io.blurite.cs2"
     version = "1.5"
     
     repositories {

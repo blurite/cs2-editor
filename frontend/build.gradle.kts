@@ -36,6 +36,7 @@ javafx {
 tasks.withType<Jar> {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     
+    archiveFileName.set("cs2-editor.jar")
     destinationDirectory.set(file(rootDir))
     manifest.attributes["Main-Class"] = "com.displee.editor.EditorKt"
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
