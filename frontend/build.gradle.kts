@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
     implementation(projects.backend)
-    
+
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("com.displee:disio:2.2")
     implementation("com.displee:rs-cache-library:6.8.1")
@@ -30,12 +30,13 @@ dependencies {
 }
 
 javafx {
+    version = "11"
     modules = listOf("javafx.controls", "javafx.fxml")
 }
 
 tasks.withType<Jar> {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    
+
     archiveFileName.set("cs2-editor.jar")
     destinationDirectory.set(file(rootDir))
     manifest.attributes["Main-Class"] = "com.displee.editor.EditorKt"
