@@ -25,8 +25,7 @@
                         <SeparatorMenuItem mnemonicParsing="false"/>
                         <MenuItem fx:id="newMenuItem" disable="true" mnemonicParsing="false" text="New Script (Ctrl + N)"/>
                         <SeparatorMenuItem mnemonicParsing="false"/>
-                        <MenuItem fx:id="saveDecompiled" disable="true" mnemonicParsing="false" text="Save Decompiled (Ctrl + S)"/>
-                        <MenuItem fx:id="saveCompiled" disable="true" mnemonicParsing="false" text="Save Compiled"/>
+                        <MenuItem fx:id="saveScriptAs" disable="true" mnemonicParsing="false" text="Save As"/>
                         <MenuItem fx:id="buildMenuItem" disable="true" mnemonicParsing="false" text="Pack Script (Ctrl + D)"/>
                         <MenuItem fx:id="exportSignatures" disable="true" mnemonicParsing="false" text="Export script signatures"/>
                     </items>

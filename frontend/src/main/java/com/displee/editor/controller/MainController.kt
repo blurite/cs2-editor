@@ -23,6 +23,7 @@ import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.layout.BorderPane
 import javafx.stage.DirectoryChooser
+import javafx.stage.FileChooser
 import javafx.stage.Window
 import javafx.util.Callback
 import kotlinx.coroutines.GlobalScope
@@ -51,10 +52,7 @@ class MainController : Initializable {
     private lateinit var openMenuItem: MenuItem
 
     @FXML
-    private lateinit var saveDecompiled: MenuItem
-
-    @FXML
-    private lateinit var saveCompiled: MenuItem
+    private lateinit var saveScriptAs: MenuItem
 
     @FXML
     private lateinit var buildMenuItem: MenuItem
@@ -122,11 +120,8 @@ class MainController : Initializable {
         openMenuItem.setOnAction {
             openCache()
         }
-        saveDecompiled.setOnAction {
-            saveScript()
-        }
-        saveCompiled.setOnAction {
-            saveCompiledScript()
+        saveScriptAs.setOnAction {
+            saveScriptAs()
         }
         buildMenuItem.setOnAction {
             packScript()
@@ -340,8 +335,7 @@ class MainController : Initializable {
         Platform.runLater {
             scriptList.isDisable = false
             newMenuItem.isDisable = false
-            saveDecompiled.isDisable = false
-            saveCompiled.isDisable = false
+            saveScriptAs.isDisable = false
             buildMenuItem.isDisable = false
             exportSignatures.isDisable = false
         }
@@ -451,19 +445,31 @@ class MainController : Initializable {
         println("Saved script ${script.scriptID}.cs2")
     }
 
-    private fun saveCompiledScript() {
+    private fun saveScriptAs() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
 
-        val outputDir = DirectoryChooser().showDialog(mainWindow()) ?: return
-        val outputFile = outputDir.toPath() / "${script.scriptID}.dat"
+        val fileChooser = FileChooser().apply {
+            title = "Save"
+            initialFileName = "${script.scriptID}"
 
-        val function = CS2ScriptParser.parse(activeCodeArea.text, opcodesDatabase, scriptsDatabase)
-        val compiler = CS2Compiler(function)
-        val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
-        outputFile.writeBytes(compiled)
+            extensionFilters.add(FileChooser.ExtensionFilter("Compiled (.dat)", "*.dat"))
+            extensionFilters.add(FileChooser.ExtensionFilter("Source (.cs2)", "*.cs2"))
+        }
 
-        println("Saved script ${script.scriptID}.dat")
+        val outputFile = fileChooser.showSaveDialog(mainWindow()) ?: return
+
+        when (outputFile.extension) {
+            "dat" -> {
+                val function = CS2ScriptParser.parse(activeCodeArea.text, opcodesDatabase, scriptsDatabase)
+                val compiler = CS2Compiler(function)
+                val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
+                outputFile.writeBytes(compiled)
+            }
+            "cs2" -> outputFile.writeText(activeCodeArea.text)
+            else -> throw IllegalStateException("Invalid ")
+        }
+        println("Saved script ${outputFile.name}")
     }
 
     private fun compileScript() {
@@ -556,8 +562,7 @@ class MainController : Initializable {
         scriptList.items.clear()
         scriptList.isDisable = true
         newMenuItem.isDisable = true
-        saveDecompiled.isDisable = true
-        saveCompiled.isDisable = true
+        saveScriptAs.isDisable = true
         buildMenuItem.isDisable = true
         exportSignatures.isDisable = true
     }
