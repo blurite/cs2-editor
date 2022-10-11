@@ -46,70 +46,70 @@ import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
 class MainController : Initializable {
-    
+
     @FXML
     private lateinit var openMenuItem: MenuItem
-    
+
     @FXML
     private lateinit var saveDecompiled: MenuItem
-    
+
     @FXML
     private lateinit var saveCompiled: MenuItem
-    
+
     @FXML
     private lateinit var buildMenuItem: MenuItem
-    
+
     @FXML
     private lateinit var exportSignatures: MenuItem
-    
+
     @FXML
     private lateinit var showAssemblyMenuItem: CheckMenuItem
-    
+
     @FXML
     private lateinit var newMenuItem: MenuItem
-    
+
     @FXML
     private lateinit var aboutMenuItem: MenuItem
-    
+
     @FXML
     private lateinit var searchField: TextField
-    
+
     @FXML
     private lateinit var rootPane: BorderPane
-    
+
     @FXML
     private lateinit var statusLabel: Label
-    
+
     @FXML
     private lateinit var scriptList: ListView<Int>
-    
+
     @FXML
     private lateinit var mainCodePane: BorderPane
-    
+
     @FXML
     private lateinit var tabPane: TabPane
-    
+
     @FXML
     private lateinit var compilePane: BorderPane
-    
+
     @FXML
     private lateinit var compileArea: TextArea
-    
+
     @FXML
     private lateinit var assemblyCodePane: BorderPane
-    
+
     private val cachedScripts = mutableMapOf<Int, String>()
-    
+
     private var temporaryAssemblyPane: Node? = null
-    
+
     lateinit var cacheLibrary: CacheLibrary
     private lateinit var scripts: IntArray
-    
+
     private lateinit var opcodesDatabase: FunctionDatabase
     private lateinit var scriptsDatabase: FunctionDatabase
-    
+
     private var currentScript: CS2? = null
-    
+
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         rootPane.addEventHandler(KeyEvent.KEY_PRESSED) { e: KeyEvent ->
             if (e.isControlDown && e.code == KeyCode.N) {
@@ -212,15 +212,15 @@ class MainController : Initializable {
             refreshAssemblyCode()
         }
         assemblyCodePane.center = BorderPane(VirtualizedScrollPane(createCodeArea("", editable = false)))
-        
+
         // Disable assembly pane by default
         showAssemblyMenuItem.selectedProperty().set(false)
         showAssemblyMenuItem.onAction.handle(null)
-        
+
         // init singleton
         AutoCompleteUtils
     }
-    
+
     private fun openCache(f: File? = null) {
         var mehFile = f
         if (mehFile == null) {
@@ -259,14 +259,14 @@ class MainController : Initializable {
             }
         }
     }
-    
+
     private fun loadScripts() {
         status("Populating scripts...")
         val ids = cacheLibrary.index(SCRIPTS_INDEX).archiveIds()
         scripts = ids.copyOf()
         search(searchField.text)
     }
-    
+
     private fun search(text: String) {
         val list = arrayListOf<Int>()
         for (i in scripts) {
@@ -296,7 +296,7 @@ class MainController : Initializable {
         scriptList.items.clear()
         scriptList.items.addAll(list)
     }
-    
+
     private fun createCodeArea(initialText: String, showLineNumbers: Boolean = false, editable: Boolean = true): MainCodeArea {
         val codeArea = MainCodeArea(editable)
         if (showLineNumbers) {
@@ -326,7 +326,7 @@ class MainController : Initializable {
         codeArea.replaceText(0, 0, initialText)
         return codeArea
     }
-    
+
     private fun createScriptConfigurations() {
         status("guessing script configuration...")
         opcodesDatabase = FunctionDatabase.createOpcodeDatabase()
@@ -346,7 +346,7 @@ class MainController : Initializable {
             exportSignatures.isDisable = false
         }
     }
-    
+
     private fun generateAutoCompleteItems() {
         AutoCompleteUtils.dynamicItems.clear()
         AutoCompleteUtils.clearDynamicChildren()
@@ -394,12 +394,12 @@ class MainController : Initializable {
             }
         }
     }
-    
+
     private fun readScript(id: Int): CS2? {
         val data = cacheLibrary.data(SCRIPTS_INDEX, id)
         return CS2Reader.readCS2ScriptNewFormat(data, id, scriptConfiguration.unscrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
     }
-    
+
     private fun cacheAllScripts() {
         cachedScripts.clear()
         for (i in scripts) {
@@ -410,7 +410,7 @@ class MainController : Initializable {
             }
         }
     }
-    
+
     private fun decompileScript(): String {
         val script = currentScript ?: return ""
         val decompiler = CS2Decompiler(script, opcodesDatabase, scriptsDatabase)
@@ -424,7 +424,7 @@ class MainController : Initializable {
         decompiler.function.print(printer)
         return printer.toString()
     }
-    
+
     private fun decompileScript(id: Int): String {
         val data = cacheLibrary.data(SCRIPTS_INDEX, id)
         val script = CS2Reader.readCS2ScriptNewFormat(data, id, scriptConfiguration.unscrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
@@ -439,33 +439,33 @@ class MainController : Initializable {
         decompiler.function.print(printer)
         return printer.toString()
     }
-    
+
     private fun saveScript() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
-        
+
         val outputDir = DirectoryChooser().showDialog(mainWindow()) ?: return
         val outputFile = outputDir.toPath() / "${script.scriptID}.cs2"
         outputFile.writeText(activeCodeArea.text)
-        
+
         println("Saved script ${script.scriptID}.cs2")
     }
-    
+
     private fun saveCompiledScript() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
-        
+
         val outputDir = DirectoryChooser().showDialog(mainWindow()) ?: return
         val outputFile = outputDir.toPath() / "${script.scriptID}.dat"
-        
+
         val function = CS2ScriptParser.parse(activeCodeArea.text, opcodesDatabase, scriptsDatabase)
         val compiler = CS2Compiler(function)
         val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
         outputFile.writeBytes(compiled)
-        
+
         println("Saved script ${script.scriptID}.dat")
     }
-    
+
     private fun compileScript() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
@@ -479,7 +479,7 @@ class MainController : Initializable {
             printConsoleMessage(t.message)
         }
     }
-    
+
     private fun newScript(newId: Int?) {
         if (newId == null) {
             return
@@ -488,7 +488,7 @@ class MainController : Initializable {
         val compiler = CS2Compiler(function, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
         val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
         cacheLibrary.put(SCRIPTS_INDEX, newId, compiled)
-        
+
         if (!cacheLibrary.index(SCRIPTS_INDEX).update()) {
             Notification.error("Failed to create new script with id $newId.")
         } else {
@@ -496,7 +496,7 @@ class MainController : Initializable {
             loadScripts()
         }
     }
-    
+
     private fun packScript() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
@@ -516,22 +516,22 @@ class MainController : Initializable {
             printConsoleMessage(t.message)
         }
     }
-    
+
     private fun exportSignatures() {
         val outputDir = DirectoryChooser().showDialog(mainWindow()) ?: return
         val outputFile = outputDir.toPath() / "script-signatures.txt"
-    
+
         printConsoleMessage("Generating signatures")
         val database = scriptConfiguration.generateScriptsDatabase(cacheLibrary, loop = 10)
-        
+
         outputFile.writeText(database.source)
-        Notification.info("Successfully exported signatures to ${outputFile}.")
+        Notification.info("Successfully exported signatures to $outputFile.")
     }
-    
+
     private fun printConsoleMessage(line: String?) {
         compileArea.text = timeFormat.format(Date.from(Instant.now())) + " -> " + line + System.lineSeparator() + compileArea.text
     }
-    
+
     private fun refreshAssemblyCode() {
         try {
             val parser = CS2ScriptParser.parse(activeCodeArea().text, opcodesDatabase, scriptsDatabase)
@@ -545,12 +545,12 @@ class MainController : Initializable {
             // replaceAssemblyCode("Failed to generate assembly code.")
         }
     }
-    
+
     private fun replaceAssemblyCode(code: String) {
         val assemblyCodeArea = ((assemblyCodePane.center as BorderPane).center as VirtualizedScrollPane<CodeArea>).content as CodeArea
         assemblyCodeArea.replaceText(0, assemblyCodeArea.length, code)
     }
-    
+
     private fun clearCache() {
         tabPane.tabs.clear()
         scriptList.items.clear()
@@ -561,23 +561,23 @@ class MainController : Initializable {
         buildMenuItem.isDisable = true
         exportSignatures.isDisable = true
     }
-    
+
     private fun status(status: String) {
         Platform.runLater {
             statusLabel.text = "Status: $status"
         }
     }
-    
+
     private fun activeCodeArea(): MainCodeArea {
         return ((tabPane.selectionModel.selectedItem.content as BorderPane).center as VirtualizedScrollPane<CodeArea>).content as MainCodeArea
     }
-    
+
     fun mainWindow(): Window {
         return mainCodePane.scene.window
     }
-    
+
     companion object {
-        
+
         var timeFormat = SimpleDateFormat("HH:mm:ss")
         val VAR_LIST = mutableListOf<String>()
         val KEYWORDS = arrayOf(
@@ -607,7 +607,7 @@ class MainController : Initializable {
             "false",
             "null"
         )
-        
+
         private val BI_CLASSES = arrayOf(
             FONTMETRICS,
             SPRITE,
@@ -642,11 +642,11 @@ class MainController : Initializable {
             OVERLAY_INTERFACE,
             TOPLEVEL_INTERFACE
         )
-        
+
         private val KEYWORD_PATTERN = "\\b(" + java.lang.String.join("|", *KEYWORDS.map { it.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()) + ")\\b"
         private var VAR_PATTERN = "\\b(" + java.lang.String.join("|", *VAR_LIST.toTypedArray()) + ")\\b"
         private val BICLASS_PATTERN = "\\b(" + java.lang.String.join("|", *BI_CLASSES.map { it.name.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()) + ")\\b"
-        
+
         private const val PAREN_PATTERN = "\\(|\\)"
         private const val BRACE_PATTERN = "\\{|\\}"
         private const val BRACKET_PATTERN = "\\[|\\]"
@@ -655,11 +655,11 @@ class MainController : Initializable {
         private const val NUMBER_PATTERN = "\\b\\d+\\b"
         private const val COMMENT_PATTERN = "//[^\n]*" + "|" + "/\\*(.|\\R)*?\\*/"
         private const val COLOR_PATTERN = "0x.{3,6}\\b"
-        
+
         // TODO Fix these highlightings
         private val CS2_CALL_PATTERN = "\\bscript_\\d+(.*)\\b"
         private val CS2_HOOK_PATTERN = "\\b&script_\\d+(.*)"
-        
+
         fun computeHighlighting(text: String): StyleSpans<Collection<String>>? {
             VAR_PATTERN = "\\b(" + java.lang.String.join("|", *VAR_LIST.toTypedArray()) + ")\\b"
             val pattern =
@@ -695,7 +695,7 @@ class MainController : Initializable {
             return spansBuilder.create()
         }
     }
-    
+
     private class MainCodeArea(autoComplete: Boolean = true) : CodeArea() {
         val autoCompletePopup: AutoCompletePopup? = if (autoComplete) AutoCompletePopup(this) else null
     }
