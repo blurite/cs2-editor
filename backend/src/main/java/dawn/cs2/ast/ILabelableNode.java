@@ -1,7 +1,6 @@
 package dawn.cs2.ast;
 
 public interface ILabelableNode {
-    String getLabelName();
-    
-    void enableLabelName();
+	public String getLabelName();
+	public void enableLabelName();
 }

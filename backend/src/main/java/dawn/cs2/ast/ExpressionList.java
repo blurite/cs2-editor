@@ -7,26 +7,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ExpressionList extends ExpressionNode {
-    
+
     public List<ExpressionNode> arguments;
     public CS2Type type;
-    
+
     public ExpressionList(List<ExpressionNode> expressions) {
         this.arguments = expressions;
     }
-    
+
     public ExpressionList(CS2Type type, List<ExpressionNode> expressions) {
         this.type = type;
         this.arguments = expressions;
     }
-    
+
     @Override
     public CS2Type getType() {
         //recalculate because types can be inferred during decompilation
         return type == null ? CS2Type.typeFor(arguments) : type;
     }
-    
-    
+
+
     @Override
     public ExpressionList copy() {
         List<ExpressionNode> copy = new ArrayList<>(arguments.size());
@@ -35,7 +35,7 @@ public class ExpressionList extends ExpressionNode {
         }
         return new ExpressionList(copy);
     }
-    
+
     @Override
     public void print(CodePrinter printer) {
         for (int i = 0; i < arguments.size(); i++) {
@@ -44,5 +44,5 @@ public class ExpressionList extends ExpressionNode {
                 printer.print(", ");
         }
     }
-    
+
 }

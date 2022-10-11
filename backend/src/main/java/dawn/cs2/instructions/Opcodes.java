@@ -5,7 +5,7 @@ import dawn.cs2.util.FunctionDatabase;
 import java.lang.reflect.Field;
 
 public class Opcodes {
-    
+
     public static final int PUSH_INT = 0;
     public static final int PUSH_STRING = 3;
     public static final int PUSH_LONG = 54;
@@ -29,12 +29,12 @@ public class Opcodes {
     public static final int STORE_VARC = 43;
     public static final int LOAD_VARPBIT = 25;
     public static final int SWITCH = 51;
-    
+
     public static final int ARRAY_NEW = 44;
     public static final int ARRAY_LOAD = 45;
     public static final int ARRAY_STORE = 46;
-    
-    
+
+
     public static final int STORE_VARCSTR = 48;
     public static final int CALL_CS2 = 40;
     public static final int GOTO = 6;
@@ -52,11 +52,11 @@ public class Opcodes {
     public static final int LONG_GE = 73;
     public static final int EQ1 = 86;
     public static final int EQ0 = 87;
-    
+
     public static FunctionDatabase opcodesDb = null;
 //    public static FunctionDatabase scriptsDb = null;
-    
-    
+
+
     public static String getOpcodeName(int opcode) {
         try {
             Field[] flds = Opcodes.class.getFields();
@@ -71,7 +71,7 @@ public class Opcodes {
         }
         return "OP_" + opcode;
     }
-    
+
     public static int oppositeJump(int op) {
         switch (op) {
             case INT_EQ:
@@ -89,7 +89,7 @@ public class Opcodes {
         }
         return -1;
     }
-    
+
     public static boolean isAssign(int op) {
         switch (op) {
             case POP_INT:
@@ -107,5 +107,5 @@ public class Opcodes {
         }
         return false;
     }
-    
+
 }

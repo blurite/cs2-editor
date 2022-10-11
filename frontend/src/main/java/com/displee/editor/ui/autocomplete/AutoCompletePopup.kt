@@ -27,22 +27,22 @@ import java.util.*
 import java.util.regex.Pattern
 
 class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
-    
+
     private val outsideViewportValues = Var.newSimpleVar(false)
     private val list = ListView<AutoCompleteItem>()
     private val pane = BorderPane(list)
     private lateinit var node: FunctionNode
-    
+
     init {
         setupPane()
         bindCodeAreaEvents()
         bindPopupEvents()
     }
-    
+
     fun init(node: FunctionNode) {
         this.node = node
     }
-    
+
     private fun setupPane() {
         content.add(pane)
         pane.prefWidth = 625.0
@@ -53,17 +53,17 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
         list.cellFactory = object : Callback<ListView<AutoCompleteItem>, ListCell<AutoCompleteItem>> {
             override fun call(param: ListView<AutoCompleteItem>): ListCell<AutoCompleteItem> {
                 return object : ListCell<AutoCompleteItem>() {
-                    
+
                     private val name = Label()
                     private val type = Label()
                     private val hBox = HBox(name, type)
-                    
+
                     init {
                         type.alignment = Pos.CENTER_RIGHT
                         type.maxWidth = Double.MAX_VALUE
                         HBox.setHgrow(type, Priority.ALWAYS)
                     }
-                    
+
                     override fun updateItem(item: AutoCompleteItem?, empty: Boolean) {
                         super.updateItem(item, empty)
                         if (item == null) {
@@ -78,7 +78,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
             }
         }
     }
-    
+
     private fun bindCodeAreaEvents() {
         codeArea.textProperty().addListener { _, _, _ ->
             complete()
@@ -94,7 +94,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
             }
         }
     }
-    
+
     private fun bindPopupEvents() {
         addEventFilter(KeyEvent.KEY_PRESSED) {
             if (!isShowing) {
@@ -110,7 +110,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
             }
         }
     }
-    
+
     private fun query(): AutoCompleteQuery? {
         val line = codeArea.getText(codeArea.getAbsolutePosition(codeArea.currentParagraph, 0), codeArea.caretPosition)
         var codeLine = ""
@@ -128,7 +128,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
         }
         return AutoCompleteQuery(codeLine, lastWord)
     }
-    
+
     private fun getObjectScope(line: String): AutoCompleteClass? {
         if (!line.contains(".")) {
             return null
@@ -161,7 +161,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
         }
         return scope
     }
-    
+
     private fun complete() {
         val query = query()
         if (query == null) {
@@ -179,7 +179,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
             list.refresh()
         }
     }
-    
+
     private fun populate(query: AutoCompleteQuery): Boolean {
         val word = query.word
         val focusedWord = focusedWord(true)
@@ -208,7 +208,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
         list.prefHeight = pane.prefHeight
         return true
     }
-    
+
     private fun choose() {
         var item = list.selectionModel.selectedItem
         if (item == null && list.items.isNotEmpty()) {
@@ -232,7 +232,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
         }
         hide()
     }
-    
+
     private fun getQuerySuggestions(word: String, scope: AutoCompleteClass? = null): List<AutoCompleteItem> {
         val list = mutableListOf<AutoCompleteItem>()
         if (scope == null) {
@@ -258,7 +258,7 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
         }
         return list
     }
-    
+
     private fun focusedWord(highlight: Boolean = false): String? {
         val line = codeArea.getText(codeArea.currentParagraph)
         val startPosition = codeArea.getAbsolutePosition(codeArea.currentParagraph, 0)
@@ -286,14 +286,14 @@ class AutoCompletePopup(private val codeArea: CodeArea) : Popup() {
         }
         return null
     }
-    
+
     companion object {
         private const val CHAR_WIDTH = 10.8 // TODO Tricky, but works
         private const val LIST_ITEM_HEIGHT = 24.0 // defined in CSS
         private const val LIST_MAX_HEIGHT = 10 * LIST_ITEM_HEIGHT // max 10 items
         private const val OFFSET_X = -15
         private const val OFFSET_Y = 21
-        
+
         // private val LAST_WORD_PATTERN = Pattern.compile("([a-zA-Z0-9]+)(\\p{Punct}*$)", Pattern.UNICODE_CHARACTER_CLASS)
         private val LAST_WORD_PATTERN = Pattern.compile("([a-zA-Z0-9]+)([^ ~`!@#$%^&*(){}\\[\\];:\"'<,.>?/|_+=-]*$)", Pattern.UNICODE_CHARACTER_CLASS)
         private val CODE_LINE_PATTERN = Pattern.compile("([a-zA-Z0-9.,() _&\\[\\]]+)([\\p{Punct}&&[^.]&&[^(]&&[^)?]&&[^\\[?]&&[^]?]]*$)", Pattern.UNICODE_CHARACTER_CLASS)

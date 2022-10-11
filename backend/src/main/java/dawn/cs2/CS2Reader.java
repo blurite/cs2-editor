@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CS2Reader {
-    
+
     public static CS2 readCS2ScriptNewFormat(File scriptFile, int scriptID, Map<Integer, Integer> unscramble) throws IOException {
         CS2Reader reader = new CS2Reader();
         if (!scriptFile.exists() || !scriptFile.isFile() || !scriptFile.canRead())
@@ -26,24 +26,24 @@ public class CS2Reader {
             throw new IOException("Reading failed.");
         return reader.readScript(scriptID, data, unscramble, false, false);
     }
-    
+
     public static CS2 readCS2ScriptNewFormat(byte[] data, int scriptID, Map<Integer, Integer> unscramble, boolean disableSwitches, boolean disableLongs) throws IOException {
         CS2Reader reader = new CS2Reader();
         return reader.readScript(scriptID, data, unscramble, disableSwitches, disableLongs);
     }
-    
+
     @SuppressWarnings("unchecked")
     private CS2 readScript(int scriptID, byte[] data, Map<Integer, Integer> unscramble, boolean disableSwitches, boolean disableLongs) throws IOException {
         InputBuffer buffer = new InputBuffer(data);
-        
+
         boolean hasSwitches = !disableSwitches && unscramble.containsValue(Opcodes.SWITCH); //old OSRS doesnt have switches
         boolean hasLongs = !disableLongs && unscramble.containsValue(Opcodes.PUSH_LONG); //old revisions don't have longs
-        
+
         if (hasSwitches) {
             buffer.setOffset(data.length - 2);
         }
         int switchBlocksSize = hasSwitches ? buffer.readUnsignedShort() : 0;
-        
+
         int codeBlockEnd = data.length - switchBlocksSize - (hasLongs ? 16 : 12) - (hasSwitches ? 2 : 0);
         buffer.setOffset(codeBlockEnd);
         int codeSize = buffer.readInt();
@@ -52,7 +52,7 @@ public class CS2Reader {
         int longLocalsCount = 0;
         if (hasLongs)
             longLocalsCount = buffer.readUnsignedShort();
-        
+
         int intArgsCount = buffer.readUnsignedShort();
         int stringArgsCount = buffer.readUnsignedShort();
         int longArgsCount = 0;
@@ -72,7 +72,7 @@ public class CS2Reader {
         }
         buffer.setOffset(0);
         String scriptName = buffer.readStringNull();
-        
+
         CS2Type[] args = new CS2Type[intArgsCount + stringArgsCount + longArgsCount];
         int write = 0;
         for (int i = 0; i < intArgsCount; i++)
@@ -81,9 +81,9 @@ public class CS2Reader {
             args[write++] = CS2Type.STRING;
         for (int i = 0; i < longArgsCount; i++)
             args[write++] = CS2Type.LONG;
-        
+
         CS2 script = new CS2(scriptID, args, intLocalsCount, stringLocalsCount, longLocalsCount, intArgsCount, stringArgsCount, longArgsCount, codeSize);
-        
+
         int writeOffset = 0;
         while (buffer.getOffset() < codeBlockEnd) {
             int opcode = buffer.readUnsignedShort();
@@ -113,7 +113,7 @@ public class CS2Reader {
                     int full = writeOffset + (Integer) addr + 1;
                     if (script.getInstructions()[full * 2] == null)
                         script.getInstructions()[full * 2] = new Label();
-                    
+
                     targets.add((Label) script.getInstructions()[full * 2]);
                 }
                 script.getInstructions()[(writeOffset * 2) + 1] = new SwitchInstruction(opcode, cases, targets);
@@ -135,5 +135,5 @@ public class CS2Reader {
         script.prepareInstructions();
         return script;
     }
-    
+
 }

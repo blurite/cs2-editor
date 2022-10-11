@@ -8,6 +8,15 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class CS2Type {
+
+    static Map<Integer, CS2Type> attrTypes = new HashMap<>();
+
+    private int intStackSize;
+    private int stringStackSize;
+    private int longStackSize;
+    private String name;
+    public char charDesc;
+    private boolean structure;
     
     public static CS2Type ANIM = new CS2Type(1, 0, 0, "Animation", 'A');
     public static CS2Type AREA = new CS2Type(1, 0, 0, "Area", 'R');
@@ -52,32 +61,8 @@ public class CS2Type {
     public static CS2Type VOID = new CS2Type(0, 0, 0, "void", '\0');
     public static CS2Type WIDGET_PTR = new CS2Type(1, 0, 0, "Widget", 'I');
     public static CS2Type[] TYPE_LIST = new CS2Type[]{VOID, CALLBACK, BOOLEAN, INT, FONTMETRICS, SPRITE, MODEL, LOCATION, CHAR, STRING, LONG, UNKNOWN, WIDGET_PTR, ITEM_ID, ITEM, NAMED_ITEM, COLOR, CONTAINER, ENUM, STRUCT, ANIM, MAPID, GRAPHIC, SKILL, NPCDEF, TEXTURE, CATEGORY, SOUNDEFFECT, INT_ARRAY, LONG_ARRAY, STRING_ARRAY, DB_ROW, DB_FIELD, DB_COLUMN, DB_TABLE, OBJECT, MAP_ELEMENT, AREA, LOCSHAPE, NPCUID, OVERLAY_INTERFACE, TOPLEVEL_INTERFACE};
-    static Map<Integer, CS2Type> attrTypes = new HashMap<>();
-    private static final List<CS2Type> cache = new ArrayList<CS2Type>();
+    private static List<CS2Type> cache = new ArrayList<CS2Type>();
 
-    static {
-        try {
-            InputStreamReader ir = new InputStreamReader(CS2Type.class.getResourceAsStream("/cs2/attr.types.txt"));
-            BufferedReader br = new BufferedReader(ir);
-            String l;
-            while ((l = br.readLine()) != null) {
-                String[] t = l.split(" ");
-                CS2Type.attrTypes.put(Integer.parseInt(t[0]), CS2Type.forJagexDesc(t[1].charAt(0)));
-            }
-            br.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public char charDesc;
-    public List<CS2Type> composite = new ArrayList<>();
-    private int intStackSize;
-    private int stringStackSize;
-    private int longStackSize;
-    private final String name;
-    private final boolean structure;
-    
     //TODO: Refactor this
     public CS2Type(int iss, int sss, int lss, String name, char c) {
         this.intStackSize = iss;
@@ -88,7 +73,9 @@ public class CS2Type {
         this.structure = false;
         composite.add(this);
     }
-    
+
+    public List<CS2Type> composite = new ArrayList<>();
+
     private CS2Type(List<CS2Type> struct) {
         for (CS2Type t : struct) {
             this.intStackSize += t.intStackSize;
@@ -100,7 +87,7 @@ public class CS2Type {
         name = "";
         cache.add(this);
     }
-    
+
     public static CS2Type of(List<CS2Type> typeList) {
         if (typeList.size() == 1) {
             return typeList.get(0);
@@ -119,7 +106,7 @@ public class CS2Type {
         }
         return new CS2Type(typeList);
     }
-    
+
     public static CS2Type typeFor(List<ExpressionNode> list) {
         List<CS2Type> result = new ArrayList<>();
         for (ExpressionNode n : list) {
@@ -128,10 +115,10 @@ public class CS2Type {
         if (result.size() == 1) {
             return result.get(0);
         }
-        
+
         return CS2Type.of(result);
     }
-    
+
     /**
      * Casts expression node to specific type.
      * If expression type is same then returned value is expr,
@@ -144,11 +131,11 @@ public class CS2Type {
         if (expr instanceof PlaceholderValueNode) {
             throw new DecompilerException("Can't cast placeholder values!");
         }
-        
+
         if (type.equals(UNKNOWN)) {
             return expr;
         }
-        
+
         if (type.equals(LOCATION))
             return new NewLocationNode(expr);
         if (type.equals(WIDGET_PTR))
@@ -169,7 +156,7 @@ public class CS2Type {
         }
         if (type.equals(CHAR) && expr instanceof IntExpressionNode)
             return new CharExpressionNode((char) ((IntExpressionNode) expr).getData());
-        
+
         if ((expr.getType() == BOOLEAN || expr.getType() == COLOR) && type == INT) {
             //allow implicit conversion from these types to int
             return expr;
@@ -181,10 +168,55 @@ public class CS2Type {
         if (type.isCompatible(expr.getType())) {
             return new CastNode(type, expr);
         }
-        
+
         throw new DecompilerException("Incompatible cast " + expr.getType() + " to " + type);
     }
-    
+
+    public boolean isStructure() {
+        return structure;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public int hashCode() {
+        int stackHash = structure ? (1 << 9) : 0;
+        stackHash |= intStackSize & 0x7;
+        stackHash |= (stringStackSize & 0x7) << 3;
+        stackHash |= (longStackSize & 0x7) << 6;
+        int nameHash = (name.length() & 0x7) | (name.length() << 3);
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if ((c & 0x1) != 0)
+                nameHash += nameHash + (nameHash / c);
+            else
+                nameHash += nameHash - (nameHash * c);
+        }
+        return stackHash | (nameHash << 11);
+    }
+
+    public boolean equals(CS2Type other) {
+        if (this.structure != other.structure) {
+            return false;
+        }
+        if (this.composite.size() != other.composite.size()) {
+            return false;
+        }
+        for (int i = 0; i < composite.size(); i++) {
+            if (composite.get(i) != other.composite.get(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isCompatible(CS2Type other) {
+        //TODO: Order should be same too, but only used for simple types?
+        return this == UNKNOWN || other == CS2Type.UNKNOWN || (intStackSize == other.intStackSize && stringStackSize == other.stringStackSize && longStackSize == other.longStackSize);
+    }
+
     public static CS2Type forDesc(String desc) {
         for (int i = 0; i < TYPE_LIST.length; i++) {
             if (desc.equals(TYPE_LIST[i].toString())) {
@@ -197,15 +229,15 @@ public class CS2Type {
         String name = spl[0];
         String stackDesc = spl[1].substring(0, spl[1].length() - 1);
         String[] stackSpl = stackDesc.split("\\,");
-        
+
         List<CS2Type> composite = new LinkedList<>();
         for (String s : stackSpl) {
             composite.add(forDesc(s.trim()));
         }
-        
+
         return CS2Type.of(composite);
     }
-    
+
     public static CS2Type forJagexDesc(char desc) {
         switch (desc) {
             case '\0':
@@ -276,54 +308,10 @@ public class CS2Type {
             default:
                 return INT;
         }
-        
+
     }
-    
-    public boolean isStructure() {
-        return structure;
-    }
-    
-    public String getName() {
-        return name;
-    }
-    
-    @Override
-    public int hashCode() {
-        int stackHash = structure ? (1 << 9) : 0;
-        stackHash |= intStackSize & 0x7;
-        stackHash |= (stringStackSize & 0x7) << 3;
-        stackHash |= (longStackSize & 0x7) << 6;
-        int nameHash = (name.length() & 0x7) | (name.length() << 3);
-        for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
-            if ((c & 0x1) != 0)
-                nameHash += nameHash + (nameHash / c);
-            else
-                nameHash += nameHash - (nameHash * c);
-        }
-        return stackHash | (nameHash << 11);
-    }
-    
-    public boolean equals(CS2Type other) {
-        if (this.structure != other.structure) {
-            return false;
-        }
-        if (this.composite.size() != other.composite.size()) {
-            return false;
-        }
-        for (int i = 0; i < composite.size(); i++) {
-            if (composite.get(i) != other.composite.get(i)) {
-                return false;
-            }
-        }
-        return true;
-    }
-    
-    public boolean isCompatible(CS2Type other) {
-        //TODO: Order should be same too, but only used for simple types?
-        return this == UNKNOWN || other == CS2Type.UNKNOWN || (intStackSize == other.intStackSize && stringStackSize == other.stringStackSize && longStackSize == other.longStackSize);
-    }
-    
+
+
     @Override
     public String toString() {
         if (structure) {
@@ -341,5 +329,20 @@ public class CS2Type {
             return this.name;
         }
     }
-    
+
+    static {
+        try {
+            InputStreamReader ir = new InputStreamReader(CS2Type.class.getResourceAsStream("/cs2/attr.types.txt"));
+            BufferedReader br = new BufferedReader(ir);
+            String l;
+            while ((l = br.readLine()) != null) {
+                String[] t = l.split(" ");
+                CS2Type.attrTypes.put(Integer.parseInt(t[0]), CS2Type.forJagexDesc(t[1].charAt(0)));
+            }
+            br.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

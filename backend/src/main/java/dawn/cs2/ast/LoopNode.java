@@ -3,40 +3,40 @@ package dawn.cs2.ast;
 import dawn.cs2.CodePrinter;
 
 public class LoopNode extends AbstractCodeNode {// implements IBreakableNode,IContinueableNode {
-    
+
     public static final int LOOPTYPE_WHILE = 0;
     public static final int LOOPTYPE_DOWHILE = 1;
     public static final int LOOPTYPE_FOR = 2;
-    
+
     /**
      * Contains expression which type is boolean.
      */
-    private final ExpressionNode expression;
+    private ExpressionNode expression;
     /**
      * Contains scope which should be executed if
      * expression results in true.
      */
-    private final ScopeNode scope;
+    private ScopeNode scope;
     /**
      * Contains type of this loop node.
      */
     private int type;
-    
+
     public LoopNode(int type, ScopeNode scope, ExpressionNode expr) {
         this.type = type;
         this.expression = expr;
         this.scope = scope;
     }
-    
+
     public ScopeNode getScope() {
         return scope;
     }
-    
-    
+
+
     public ExpressionNode getExpression() {
         return expression;
     }
-    
+
     @Override
     public void print(CodePrinter printer) {
 //        if (this.labelName != null)
@@ -96,14 +96,14 @@ public class LoopNode extends AbstractCodeNode {// implements IBreakableNode,ICo
 //	public String getLabelName() {
 //		return labelName;
 //	}
-    
-    public int getType() {
-        return type;
-    }
-    
+
     public void setType(int type) {
         this.type = type;
     }
-    
-    
+
+    public int getType() {
+        return type;
+    }
+
+
 }

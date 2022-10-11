@@ -667,8 +667,7 @@ class MainController : Initializable {
 
         fun computeHighlighting(text: String): StyleSpans<Collection<String>>? {
             VAR_PATTERN = "\\b(" + java.lang.String.join("|", *VAR_LIST.toTypedArray()) + ")\\b"
-            val pattern =
-                Pattern.compile("(?<KEYWORD>$KEYWORD_PATTERN)|(?<BICLASS>$BICLASS_PATTERN)|(?<NUMBER>$NUMBER_PATTERN)|(?<PAREN>$PAREN_PATTERN)|(?<BRACE>$BRACE_PATTERN)|(?<BRACKET>$BRACKET_PATTERN)|(?<SEMICOLON>$SEMICOLON_PATTERN)|(?<STRING>$STRING_PATTERN)|(?<COMMENT>$COMMENT_PATTERN)|(?<COLOR>$COLOR_PATTERN)|(?<VAR>$VAR_PATTERN)"/*|(?<CS2CALL>$CS2_CALL_PATTERN)|(?<CS2HOOK>$CS2_HOOK_PATTERN)"*/)
+            val pattern = Pattern.compile("(?<KEYWORD>$KEYWORD_PATTERN)|(?<BICLASS>$BICLASS_PATTERN)|(?<NUMBER>$NUMBER_PATTERN)|(?<PAREN>$PAREN_PATTERN)|(?<BRACE>$BRACE_PATTERN)|(?<BRACKET>$BRACKET_PATTERN)|(?<SEMICOLON>$SEMICOLON_PATTERN)|(?<STRING>$STRING_PATTERN)|(?<COMMENT>$COMMENT_PATTERN)|(?<COLOR>$COLOR_PATTERN)|(?<VAR>$VAR_PATTERN)"/*|(?<CS2CALL>$CS2_CALL_PATTERN)|(?<CS2HOOK>$CS2_HOOK_PATTERN)"*/)
             val matcher: Matcher = pattern.matcher(text)
             var lastKwEnd = 0
             val spansBuilder = StyleSpansBuilder<Collection<String>>()
@@ -683,8 +682,8 @@ class MainController : Initializable {
                     matcher.group("NUMBER") != null -> "number"
                     matcher.group("COMMENT") != null -> "comment"
                     matcher.group("BICLASS") != null -> "biclass"
-                    /*matcher.group("CS2CALL") != null -> "cs2-call"
-                    matcher.group("CS2HOOK") != null -> "cs2-hook"*/
+					/*matcher.group("CS2CALL") != null -> "cs2-call"
+					matcher.group("CS2HOOK") != null -> "cs2-hook"*/
                     matcher.group("COLOR") != null -> "color"
                     matcher.group("VAR") != null -> "var"
                     else -> null

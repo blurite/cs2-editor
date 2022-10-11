@@ -4,8 +4,8 @@ import dawn.cs2.CS2Type;
 
 
 public abstract class ExpressionNode extends AbstractCodeNode {
-    
-    
+
+
     public static final int PRIORITY_STANDARD = 0;
     public static final int PRIORITY_ARRAY_INDEX = 1;
     public static final int PRIORITY_CALL = 1;
@@ -29,27 +29,27 @@ public abstract class ExpressionNode extends AbstractCodeNode {
     public static final int PRIORITY_LOGICALOR = 12;
     public static final int PRIORITY_TERNARY = 13;
     public static final int PRIORITY_ASSIGNMENT = 14;
-    
+
     /**
      * Return's type of this expression.
      */
     public abstract CS2Type getType();
-    
+
     public void solveCS2Type(ExpressionNode node, int index) {
-    
+
     }
-    
+
     public CS2Type[] getCS2Types() {
         return new CS2Type[0];
     }
-    
+
     /**
      * Copies this expression node.
      */
     public abstract ExpressionNode copy();
-    
+
     public int getPriority() {
         return 0;
     }
-    
+
 }

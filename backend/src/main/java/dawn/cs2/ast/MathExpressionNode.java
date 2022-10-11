@@ -5,34 +5,35 @@ import dawn.cs2.CodePrinter;
 import dawn.cs2.DecompilerException;
 
 public class MathExpressionNode extends ExpressionNode {
-    
-    public final Operator operator;
+
     /**
      * Contains left expression node.
      */
-    private final ExpressionNode left;
+    private ExpressionNode left;
     /**
      * Contains right expression node.
      */
-    private final ExpressionNode right;
-    
+    private ExpressionNode right;
+
+    public final Operator operator;
+
     public MathExpressionNode(ExpressionNode left, ExpressionNode right, Operator operator) {
         this.left = left;
         this.right = right;
         assert left.getType().isCompatible(right.getType());
         this.operator = operator;
     }
-    
+
     @Override
     public CS2Type getType() {
         return left.getType();
     }
-    
+
     @Override
     public int getPriority() {
         return operator.priority;
     }
-    
+
     @Override
     public void print(CodePrinter printer) {
         boolean needsLeftParen = left.getPriority() > getPriority();
@@ -43,7 +44,7 @@ public class MathExpressionNode extends ExpressionNode {
 //            subtract and rem and divide is not associative!! 0 - (1 +/- 2) requires paren on right side
 //            needsRightParen = true;
 //        }
-        
+
         if (needsLeftParen)
             printer.print("(");
         this.left.print(printer);
@@ -56,20 +57,20 @@ public class MathExpressionNode extends ExpressionNode {
         if (needsRightParen)
             printer.print(")");
     }
-    
+
     @Override
     public ExpressionNode copy() {
         return new MathExpressionNode(left.copy(), right.copy(), operator);
     }
-    
+
     public ExpressionNode getLeft() {
         return left;
     }
-    
+
     public ExpressionNode getRight() {
         return right;
     }
-    
+
     public ExpressionNode simplify() {
         //Compute the expression if both sides are constants, this wont work on things like though ((2 + int) + 2) because both expressions are variable
         if (left instanceof IntExpressionNode && right instanceof IntExpressionNode) {
@@ -92,5 +93,5 @@ public class MathExpressionNode extends ExpressionNode {
         }
         return this;
     }
-    
+
 }

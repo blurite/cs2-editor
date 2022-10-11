@@ -1,26 +1,27 @@
 package dawn.cs2;
 
 import dawn.cs2.ast.*;
+import dawn.cs2.ast.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class ControlFlowSolver {
-    
-    private final CS2Decompiler decompiler;
-    private final ScopeNode scope;
-    private final List<FlowBlock> blocks;
-    
+
+    private CS2Decompiler decompiler;
+    private ScopeNode scope;
+    private List<FlowBlock> blocks;
+
     public ControlFlowSolver(CS2Decompiler decompiler, ScopeNode scope, List<FlowBlock> blocks) {
         this.decompiler = decompiler;
         this.scope = scope;
         this.blocks = blocks;
     }
-    
-    
+
+
     public void solve() throws DecompilerException {
-        
+
         int i = 0;
         if (!CS2ConstantsKt.GENERATE_SCRIPTS_DB)
             while (true) {
@@ -37,10 +38,10 @@ public class ControlFlowSolver {
                 if (findSwitch() > 0) continue;
                 if (findStupidShit() > 0) continue;
                 if (invertElseReturn() > 0) continue; //this must come last, may also be loops that use similar structure
-                
+
                 break;
             }
-        
+
         List<FlowBlock> blocks = listBlocks();
         for (FlowBlock block : blocks) {
             if (block.children.size() <= 0 && block.parents.size() <= 0) {
@@ -52,7 +53,7 @@ public class ControlFlowSolver {
             }
         }
     }
-    
+
     private void assertSanity() {
         for (FlowBlock b : blocks) {
             if (b != null) {
@@ -65,7 +66,7 @@ public class ControlFlowSolver {
             }
         }
     }
-    
+
     private int findConnect() {
         int solved = 0;
         for (FlowBlock block : blocks)
@@ -77,7 +78,7 @@ public class ControlFlowSolver {
 //            System.err.println("Found connect - " + solved);
         return solved;
     }
-    
+
     private boolean solveConnect(FlowBlock b) {
         if (b.children.size() == 1 && b.children.get(0).parents.size() == 1) {
             FlowBlock c = b.children.get(0);
@@ -133,8 +134,8 @@ public class ControlFlowSolver {
         }
         return false;
     }
-    
-    
+
+
     private int findIfElse() {
         int solved = 0;
         for (FlowBlock block : blocks) {
@@ -147,12 +148,13 @@ public class ControlFlowSolver {
 //            System.err.println("Found ifs - " + solved);
         return solved;
     }
-    
+
     private boolean solveIfReturn(FlowBlock b) {
         b.setCodeAddress(0);
         AbstractCodeNode n;
         while ((n = b.read()) != null) {
-            if (n instanceof ConditionalFlowBlockJump j) {
+            if (n instanceof ConditionalFlowBlockJump) {
+                ConditionalFlowBlockJump j = (ConditionalFlowBlockJump) n;
                 if (j.getTarget().parents.size() == 1 && j.getTarget().children.size() == 0) {
                     //inline if block if it always returns
                     b.setCodeAddress(b.getCodeAddress() - 1);
@@ -169,20 +171,22 @@ public class ControlFlowSolver {
                 }
             }
         }
-        
+
         return false;
     }
-    
+
     private boolean solveIf(FlowBlock b) {
         if (b.children.size() == 2) {
             AbstractCodeNode n2 = b.read(b.size() - 2);
             AbstractCodeNode n1 = b.read(b.size() - 1);
-            
-            if (!(n2 instanceof ConditionalFlowBlockJump jmp) || !(n1 instanceof UnconditionalFlowBlockJump merge)) {
+
+            if (!(n2 instanceof ConditionalFlowBlockJump) || !(n1 instanceof UnconditionalFlowBlockJump)) {
                 //switches etc
                 return false;
             }
-    
+
+            ConditionalFlowBlockJump jmp = (ConditionalFlowBlockJump) n2;
+            UnconditionalFlowBlockJump merge = (UnconditionalFlowBlockJump) n1;
             FlowBlock ifblock = jmp.getTarget();
             FlowBlock elseblock = merge.getTarget();
             boolean invert = false;
@@ -192,7 +196,7 @@ public class ControlFlowSolver {
                 elseblock = t;
                 invert = true;
             }
-            
+
             if (ifblock.children.size() == 1 && ifblock.children.get(0) == elseblock && ifblock.parents.size() == 1 && ifblock.read(ifblock.size() - 1) instanceof UnconditionalFlowBlockJump) {
                 ScopeNode ifs = new ScopeNode();
                 for (int i = 0; i < ifblock.size() - 1; i++) { //skip last goto E
@@ -220,11 +224,11 @@ public class ControlFlowSolver {
                 b.write(new IfElseNode(expr, ifs, new ScopeNode()));
                 return true;
             }
-            
+
         }
         return false;
     }
-    
+
     private boolean solveIfElse(FlowBlock b) {
         if (b.children.size() == 2) {
             FlowBlock l = b.children.get(0);
@@ -240,11 +244,13 @@ public class ControlFlowSolver {
             }
             AbstractCodeNode n1 = b.read(b.size() - 1);
             AbstractCodeNode n2 = b.read(b.size() - 2);
-            if (!(n2 instanceof ConditionalFlowBlockJump j2) || !(n1 instanceof UnconditionalFlowBlockJump j1)) {
+            if (!(n2 instanceof ConditionalFlowBlockJump) || !(n1 instanceof UnconditionalFlowBlockJump)) {
                 //switches etc
 //                throw new DecompilerException("break me");
                 return false;
             }
+            UnconditionalFlowBlockJump j1 = (UnconditionalFlowBlockJump) n1;
+            ConditionalFlowBlockJump j2 = (ConditionalFlowBlockJump) n2;
             if (j2.getTarget() != l) {
                 FlowBlock t = l;
                 l = r;
@@ -258,7 +264,7 @@ public class ControlFlowSolver {
             ScopeNode ifs = new ScopeNode();
             ScopeNode elses = new ScopeNode();
             b.write(new IfElseNode(j2.getExpression(), ifs, elses));
-            
+
             if (l.children.size() > 0) {
                 //LAST NODE OF L/R MUST BE GOTO E
                 assert l.read(l.size() - 1) instanceof UnconditionalFlowBlockJump;
@@ -269,7 +275,7 @@ public class ControlFlowSolver {
                 for (int i = 0; i < r.size() - 1; i++) {
                     elses.write(r.read(i));
                 }
-                
+
             } else {
                 //IF ... RETURN ...
                 for (int i = 0; i < l.size(); i++) {
@@ -294,8 +300,8 @@ public class ControlFlowSolver {
         }
         return false;
     }
-    
-    
+
+
     private int invertElseReturn() {
         int solved = 0;
         for (FlowBlock block : blocks)
@@ -308,16 +314,17 @@ public class ControlFlowSolver {
 //            System.err.println("Found else return - " + solved);
         return solved;
     }
-    
-    
+
+
     private boolean solveElseReturn(FlowBlock b) {
         b.setCodeAddress(0);
         AbstractCodeNode n;
         while ((n = b.read()) != null) {
             if (n instanceof ConditionalFlowBlockJump) {
                 AbstractCodeNode n2 = b.read();
-                if (n2 instanceof UnconditionalFlowBlockJump jnot) {
+                if (n2 instanceof UnconditionalFlowBlockJump) {
                     ConditionalFlowBlockJump j = (ConditionalFlowBlockJump) n;
+                    UnconditionalFlowBlockJump jnot = (UnconditionalFlowBlockJump) n2;
                     if (j.getTarget().children.size() > 1) {
                         //not required but less aggressive
                         return false;
@@ -334,10 +341,10 @@ public class ControlFlowSolver {
                 }
             }
         }
-        
+
         return false;
     }
-    
+
     private int findStupidShit() {
         int solved = 0;
         for (FlowBlock block : blocks)
@@ -350,7 +357,7 @@ public class ControlFlowSolver {
 //            System.err.println("Found stupid shit - " + solved);
         return solved;
     }
-    
+
     private boolean solveStupidShit(FlowBlock b) {
         if (b.children.size() == 2) {
             FlowBlock l = b.children.get(0);
@@ -360,7 +367,7 @@ public class ControlFlowSolver {
             }
             AbstractCodeNode n1 = b.read(b.size() - 1);
             AbstractCodeNode n2 = b.read(b.size() - 2);
-            if (!(n2 instanceof ConditionalFlowBlockJump j2) || !(n1 instanceof UnconditionalFlowBlockJump j1)) {
+            if (!(n2 instanceof ConditionalFlowBlockJump) || !(n1 instanceof UnconditionalFlowBlockJump)) {
                 return false;
             }
             //change
@@ -371,6 +378,8 @@ public class ControlFlowSolver {
             // do nothing
             //}
             //GOTO Y
+            UnconditionalFlowBlockJump j1 = (UnconditionalFlowBlockJump) n1;
+            ConditionalFlowBlockJump j2 = (ConditionalFlowBlockJump) n2;
             assert j1.getTarget() == j2.getTarget();
             b.setCodeAddress(b.size() - 2);
             b.delete();
@@ -379,7 +388,7 @@ public class ControlFlowSolver {
             j1.getTarget().parents.remove(b);
             return true;
         }
-        
+
         //Empty switch
         if (b.children.size() == 0) {
             b.setCodeAddress(0);
@@ -395,7 +404,7 @@ public class ControlFlowSolver {
         }
         return false;
     }
-    
+
     private int findSwitch() {
         int solved = 0;
         for (FlowBlock block : blocks)
@@ -408,23 +417,25 @@ public class ControlFlowSolver {
 //            System.err.println("Found switches - " + solved);
         return solved;
     }
-    
+
     private boolean solveSwitches(FlowBlock b) {
         b.setCodeAddress(0);
         AbstractCodeNode n;
         while ((n = b.read()) != null) {
-            if (n instanceof SwitchFlowBlockJump sw) {
+            if (n instanceof SwitchFlowBlockJump) {
                 AbstractCodeNode aftern = b.read();
-                if (!(aftern instanceof UnconditionalFlowBlockJump j)) {
+                if (!(aftern instanceof UnconditionalFlowBlockJump)) {
                     return false;
                 }
                 assert b.getCodeAddress() == b.size();
+                UnconditionalFlowBlockJump j = (UnconditionalFlowBlockJump) aftern;
                 FlowBlock defaultCaseBlock = j.getTarget();
                 if (defaultCaseBlock.children.size() > 1) {
                     return false;
                 }
+                SwitchFlowBlockJump sw = (SwitchFlowBlockJump) n;
                 List<FlowBlock> targets = sw.getTargets();
-                
+
                 //Check if all blocks can be inlined
                 if (!targets.stream().allMatch(t -> t.children.size() <= 1)) {
                     return false;
@@ -434,11 +445,11 @@ public class ControlFlowSolver {
                     System.err.println("Switch has fall-through?");
                     return false;
                 }
-                
-                
+
+
                 FlowBlock mustBreakTo = null;
                 FlowBlock prevBlock = null;
-                
+
                 for (FlowBlock target : targets) {
                     if (target.children.size() > 0) {
                         FlowBlock breakTo = target.children.get(0);
@@ -450,15 +461,16 @@ public class ControlFlowSolver {
                         }
                     }
                 }
-                
+
                 SwitchNode sn = new SwitchNode(new ScopeNode(), sw.getExpression());
-                
+
                 for (int i = 0; i < targets.size(); i++) {
                     FlowBlock target = targets.get(i);
                     if (target != prevBlock) {
                         if (prevBlock != null) {
                             prevBlock.setCodeAddress(0);
-                            assert prevBlock.children.size() <= 0 || prevBlock.read(prevBlock.size() - 1) instanceof UnconditionalFlowBlockJump;
+                            if (prevBlock.children.size() > 0)
+                                assert prevBlock.read(prevBlock.size() - 1) instanceof UnconditionalFlowBlockJump;
                             for (int a = 0; a < prevBlock.size() - prevBlock.children.size(); a++) { //skip final GOTO
                                 sn.getScope().write(prevBlock.read(a));
                             }
@@ -468,10 +480,10 @@ public class ControlFlowSolver {
                             FlowBlock finalPrevBlock1 = prevBlock;
                             prevBlock.children.forEach(c -> c.parents.remove(finalPrevBlock1));
                             delete(prevBlock);
-                            
+
                         }
                         prevBlock = target;
-                        
+
                     }
                     //
                     b.children.remove(target);
@@ -480,12 +492,13 @@ public class ControlFlowSolver {
                 //write last block too
                 if (prevBlock != null) { //if still null = empty switch
                     prevBlock.setCodeAddress(0);
-                    assert prevBlock.children.size() <= 0 || prevBlock.read(prevBlock.size() - 1) instanceof UnconditionalFlowBlockJump;
+                    if (prevBlock.children.size() > 0)
+                        assert prevBlock.read(prevBlock.size() - 1) instanceof UnconditionalFlowBlockJump;
                     for (int a = 0; a < prevBlock.size() - prevBlock.children.size(); a++) { //skip final GOTO
                         sn.getScope().write(prevBlock.read(a));
                     }
                     if (prevBlock.children.size() > 0) {
-                        
+
                         sn.getScope().write(new BreakNode());
                     }
                     FlowBlock finalPrevBlock = prevBlock;
@@ -514,7 +527,7 @@ public class ControlFlowSolver {
                         }
                     }
                     delete(defaultCaseBlock);
-                    
+
                 }
                 b.setCodeAddress(b.getCodeAddress() - 2);
                 b.delete();
@@ -543,8 +556,8 @@ public class ControlFlowSolver {
         }
         return false;
     }
-    
-    
+
+
     private int findWhile() {
         int solved = 0;
         for (FlowBlock block : blocks)
@@ -556,14 +569,16 @@ public class ControlFlowSolver {
 //            System.err.println("Found while loops - " + solved);
         return solved;
     }
-    
+
     private boolean solveWhile(FlowBlock b) {
         if (b.children.size() == 2) {
             AbstractCodeNode n1 = b.read(b.size() - 2);
             AbstractCodeNode n2 = b.read(b.size() - 1);
-            if (!(n1 instanceof ConditionalFlowBlockJump j) || !(n2 instanceof UnconditionalFlowBlockJump e)) {
+            if (!(n1 instanceof ConditionalFlowBlockJump) || !(n2 instanceof UnconditionalFlowBlockJump)) {
                 return false;
             }
+            ConditionalFlowBlockJump j = (ConditionalFlowBlockJump) n1;
+            UnconditionalFlowBlockJump e = (UnconditionalFlowBlockJump) n2;
             if (j.getTarget().children.size() == 1 && j.getTarget().parents.size() == 1 && j.getTarget().children.contains(b)) {
                 LoopNode loop = new LoopNode(LoopNode.LOOPTYPE_WHILE, new ScopeNode(), j.getExpression());
                 //Skip last GOTO
@@ -581,11 +596,11 @@ public class ControlFlowSolver {
         }
         return false;
     }
-    
+
     private void delete(FlowBlock l) {
         blocks.remove(l);
     }
-    
+
     private int mergeConditionals() {
         int merged = 0;
         for (FlowBlock block : blocks)
@@ -597,18 +612,20 @@ public class ControlFlowSolver {
 //            System.err.println("Merged if conditions:" + merged);
         return merged;
     }
-    
+
     private boolean doIfORConditionsMerge1(FlowBlock block) {
         if (block.size() < 2)
             return false;
         block.setCodeAddress(0);
         for (AbstractCodeNode node = block.read(); node != null; node = block.read()) {
-            if (node instanceof ConditionalFlowBlockJump jmp) {
+            if (node instanceof ConditionalFlowBlockJump) {
+                ConditionalFlowBlockJump jmp = (ConditionalFlowBlockJump) node;
                 int nextAddr = block.addressOf(jmp) + 1;
                 if (nextAddr >= block.size())
                     return false;
-                if (!(block.read(nextAddr) instanceof ConditionalFlowBlockJump jmp2))
+                if (!(block.read(nextAddr) instanceof ConditionalFlowBlockJump))
                     return false;
+                ConditionalFlowBlockJump jmp2 = (ConditionalFlowBlockJump) block.read(nextAddr);
                 if (jmp.getTarget() == jmp2.getTarget()) {
                     block.children.remove(jmp.getTarget());
                     jmp.getTarget().parents.remove(block);
@@ -622,85 +639,94 @@ public class ControlFlowSolver {
         }
         return false;
     }
-    
+
     private boolean doIfORConditionsMerge2(FlowBlock block) {
         if (block.size() < 2)
             return false;
-        
+
         AbstractCodeNode v0 = block.read(block.size() - 2);
         AbstractCodeNode v1 = block.read(block.size() - 1);
-        if (!(v0 instanceof ConditionalFlowBlockJump condition1) || !(v1 instanceof UnconditionalFlowBlockJump jmp))
+        if (!(v0 instanceof ConditionalFlowBlockJump) || !(v1 instanceof UnconditionalFlowBlockJump))
             return false;
-    
+
+        ConditionalFlowBlockJump condition1 = (ConditionalFlowBlockJump) v0;
+        UnconditionalFlowBlockJump jmp = (UnconditionalFlowBlockJump) v1;
+
         FlowBlock target = jmp.getTarget();
         if (/*target.getBlockID() <= block.getBlockID() ||*/ target.parents.size() != 1 || target.size() < 2)
             return false;
-        
+
         AbstractCodeNode v3 = target.read(0);
         AbstractCodeNode v4 = target.read(1);
-        if (!(v3 instanceof ConditionalFlowBlockJump condition2) || !(v4 instanceof UnconditionalFlowBlockJump jmp2))
+        if (!(v3 instanceof ConditionalFlowBlockJump) || !(v4 instanceof UnconditionalFlowBlockJump))
             return false;
-    
+
+        ConditionalFlowBlockJump condition2 = (ConditionalFlowBlockJump) v3;
+        UnconditionalFlowBlockJump jmp2 = (UnconditionalFlowBlockJump) v4;
+
         FlowBlock realTarget = jmp2.getTarget();
-        
+
         if (condition1.getTarget() != condition2.getTarget())
             return false;
-        
+
         block.setCodeAddress(block.size() - 2);
         block.delete();
         block.delete();
-        
+
         block.write(new ConditionalFlowBlockJump(new ConditionalExpressionNode(condition1.getExpression(), condition2.getExpression(), Operator.OR), condition1.getTarget()));
         block.write(new UnconditionalFlowBlockJump(realTarget));
-        
+
         block.children.remove(target);
         target.parents.remove(block);
-        
+
         block.children.add(realTarget);
         realTarget.parents.add(block);
-        
-        
+
+
         target.setCodeAddress(0);
         target.delete();
         target.delete();
-        
+
         target.children.remove(condition2.getTarget());
         condition2.getTarget().parents.remove(target);
         target.children.remove(realTarget);
         realTarget.parents.remove(target);
-        
+
         return true;
     }
-    
+
     private boolean doIfANDConditionsMerge(FlowBlock block) {
         if (block.size() < 2)
             return false;
         AbstractCodeNode v0 = block.read(block.size() - 2);
         AbstractCodeNode v1 = block.read(block.size() - 1);
-        if (!(v0 instanceof ConditionalFlowBlockJump conditionPart) || !(v1 instanceof UnconditionalFlowBlockJump jumpOut))
+        if (!(v0 instanceof ConditionalFlowBlockJump) || !(v1 instanceof UnconditionalFlowBlockJump))
             return false;
+        ConditionalFlowBlockJump conditionPart = (ConditionalFlowBlockJump) v0;
+        UnconditionalFlowBlockJump jumpOut = (UnconditionalFlowBlockJump) v1;
         FlowBlock condition = conditionPart.getTarget();
         FlowBlock out = jumpOut.getTarget();
 //        if (condition.getBlockID() <= block.getBlockID() || out.getBlockID() <= condition.getBlockID())
 //            return false;
         if (condition.parents.size() != 1 || condition.size() < 1 || condition.size() > 2)
             return false;
-        
+
         //TODO: can probably remove this?? size should always be 2?
         if (condition.size() == 1) {
             if (!condition.children.contains(out)) {
                 return false;
             }
-            
+
             AbstractCodeNode v3 = condition.read(condition.size() - 1);
-            if (!(v3 instanceof ConditionalFlowBlockJump realjmp))
+            if (!(v3 instanceof ConditionalFlowBlockJump))
                 return false;
-            
+
             if (1 == 1)
                 throw new DecompilerException("disabled");
-    
+
+            ConditionalFlowBlockJump realjmp = (ConditionalFlowBlockJump) v3;
             FlowBlock target = realjmp.getTarget();
-            
+
             block.setCodeAddress(block.size() - 2);
             block.delete();
             block.write(new ConditionalFlowBlockJump(new ConditionalExpressionNode(conditionPart.getExpression(), realjmp.getExpression(), Operator.AND), target));
@@ -708,29 +734,31 @@ public class ControlFlowSolver {
             block.children.add(target);
             condition.parents.remove(block);
             target.parents.add(block);
-            
+
             condition.setCodeAddress(condition.size() - 1);
             condition.delete();
             condition.children.remove(target);
             target.parents.remove(condition);
             return true;
-            
+
         } else {
-            
+
             AbstractCodeNode v3 = condition.read(condition.size() - 2);
             AbstractCodeNode v4 = condition.read(condition.size() - 1);
-            if (!(v3 instanceof ConditionalFlowBlockJump realjmp) || !(v4 instanceof UnconditionalFlowBlockJump jumpOut2))
+            if (!(v3 instanceof ConditionalFlowBlockJump) || !(v4 instanceof UnconditionalFlowBlockJump))
                 return false;
-    
+            ConditionalFlowBlockJump realjmp = (ConditionalFlowBlockJump) v3;
+            UnconditionalFlowBlockJump jumpOut2 = (UnconditionalFlowBlockJump) v4;
+
             if (jumpOut2.getTarget() != out)
                 return false;
-            
+
             if (condition.size() > 2) {
                 return false;
             }
-            
+
             FlowBlock target = realjmp.getTarget();
-            
+
             block.setCodeAddress(block.size() - 2);
             block.delete();
             block.write(new ConditionalFlowBlockJump(new ConditionalExpressionNode(conditionPart.getExpression(), realjmp.getExpression(), Operator.AND), target));
@@ -738,7 +766,7 @@ public class ControlFlowSolver {
             block.children.add(target);
             condition.parents.remove(block);
             target.parents.add(block);
-            
+
             condition.setCodeAddress(condition.size() - 2);
             for (int i = 0; i < 2; i++)
                 condition.delete();
@@ -749,15 +777,15 @@ public class ControlFlowSolver {
             return true;
         }
     }
-    
+
     public List<FlowBlock> listBlocks() {
         return new ArrayList<FlowBlock>(this.blocks);
     }
-    
-    
+
+
     public ScopeNode getScope() {
         return scope;
     }
-    
-    
+
+
 }

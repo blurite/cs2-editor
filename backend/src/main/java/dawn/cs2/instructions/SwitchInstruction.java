@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SwitchInstruction extends AbstractInstruction {
-    
+
     public List<Integer> cases;
     public List<Label> targets;
-    
+
     public SwitchInstruction(int opcode, List<Integer> cases, List<Label> targets) {
         super(opcode);
         this.cases = cases;
@@ -18,7 +18,7 @@ public class SwitchInstruction extends AbstractInstruction {
 
 //        this.sort();
     }
-    
+
     public void sort() {
         List<Integer> sCases = new ArrayList<>(cases.size());
         List<Label> sTargets = new ArrayList<>(targets.size());
@@ -36,8 +36,8 @@ public class SwitchInstruction extends AbstractInstruction {
         cases = sCases;
         targets = sTargets;
     }
-    
-    
+
+
     @Override
     public String toString() {
         StringBuilder bld = new StringBuilder();
@@ -49,5 +49,5 @@ public class SwitchInstruction extends AbstractInstruction {
         bld.append("}");
         return bld.toString();
     }
-    
+
 }

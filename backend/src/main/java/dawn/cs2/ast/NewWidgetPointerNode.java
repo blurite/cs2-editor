@@ -4,28 +4,28 @@ import dawn.cs2.CS2Type;
 import dawn.cs2.CodePrinter;
 
 public class NewWidgetPointerNode extends ExpressionNode {
-    
-    
-    private final ExpressionNode expression;
-    
+
+
+    private ExpressionNode expression;
+
     public NewWidgetPointerNode(ExpressionNode expr) {
         this.expression = expr;
     }
-    
+
     @Override
     public CS2Type getType() {
         return CS2Type.WIDGET_PTR;
     }
-    
+
     @Override
     public ExpressionNode copy() {
         return new NewWidgetPointerNode(this.expression.copy());
     }
-    
+
     public ExpressionNode getExpression() {
         return expression;
     }
-    
+
     @Override
     public void print(CodePrinter printer) {
         if (this.expression instanceof IntExpressionNode) {
@@ -45,5 +45,5 @@ public class NewWidgetPointerNode extends ExpressionNode {
             printer.print(")");
         }
     }
-    
+
 }

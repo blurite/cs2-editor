@@ -3,14 +3,14 @@ package dawn.cs2.ast;
 import dawn.cs2.CodePrinter;
 
 public class BreakNode extends AbstractCodeNode {//implements IFlowControlNode {
-    
+
     private IBreakableNode node;
     private ScopeNode selfScope;
-    
+
     public BreakNode() {
-    
+
     }
-    
+
     public BreakNode(ScopeNode selfScope, IBreakableNode node) {
         this.node = node;
         this.selfScope = selfScope;
@@ -28,7 +28,7 @@ public class BreakNode extends AbstractCodeNode {//implements IFlowControlNode {
 //	public ScopeNode getSelfScope() {
 //		return selfScope;
 //	}
-    
+
     @Override
     public void print(CodePrinter printer) {
 //    	if (this.getSelfScope().getParent() == node)
@@ -36,5 +36,5 @@ public class BreakNode extends AbstractCodeNode {//implements IFlowControlNode {
 //    	else
 //    		printer.print("break " + node.getLabelName() + ";");
     }
-    
+
 }

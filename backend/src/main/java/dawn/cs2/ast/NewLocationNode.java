@@ -4,27 +4,27 @@ import dawn.cs2.CS2Type;
 import dawn.cs2.CodePrinter;
 
 public class NewLocationNode extends ExpressionNode {
-    
-    private final ExpressionNode expression;
-    
+
+    private ExpressionNode expression;
+
     public NewLocationNode(ExpressionNode expr) {
         this.expression = expr;
     }
-    
+
     @Override
     public CS2Type getType() {
         return CS2Type.LOCATION;
     }
-    
+
     @Override
     public ExpressionNode copy() {
         return new NewLocationNode(this.expression.copy());
     }
-    
+
     public ExpressionNode getExpression() {
         return expression;
     }
-    
+
     @Override
     public void print(CodePrinter printer) {
         if (this.expression instanceof IntExpressionNode) {
@@ -45,5 +45,5 @@ public class NewLocationNode extends ExpressionNode {
             printer.print(")");
         }
     }
-    
+
 }

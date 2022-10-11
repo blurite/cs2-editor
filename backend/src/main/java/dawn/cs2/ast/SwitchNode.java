@@ -6,16 +6,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class SwitchNode extends AbstractCodeNode implements IBreakableNode {
-    
+
     /**
      * Contains expression which type is boolean.
      */
-    private final ExpressionNode expression;
+    private ExpressionNode expression;
     /**
      * Contains scope which should be executed if
      * expression finds valid case.
      */
-    private final ScopeNode scope;
+    private ScopeNode scope;
     /**
      * Contains cases of this switch node.
      */
@@ -28,7 +28,7 @@ public class SwitchNode extends AbstractCodeNode implements IBreakableNode {
      * Contains label name.
      */
     private String labelName;
-    
+
     public SwitchNode(ScopeNode scope, ExpressionNode expr) {
         this.expression = expr;
         this.scope = scope;
@@ -46,8 +46,8 @@ public class SwitchNode extends AbstractCodeNode implements IBreakableNode {
 //        expr.setParent(this);
 //        scope.setParent(this);
 //    }
-    
-    
+
+
     @Override
     public void print(CodePrinter printer) {
         if (this.labelName != null)
@@ -66,39 +66,19 @@ public class SwitchNode extends AbstractCodeNode implements IBreakableNode {
 //        scope.print(printer);
 //        printer.untab();
     }
-    
+
     public ScopeNode getScope() {
         return scope;
     }
-    
+
     public Case[] getCases() {
         return cases;
     }
-    
+
     public ExpressionNode getExpression() {
         return expression;
     }
-    
-    @Override
-    public boolean canBreak() {
-        return this.end != null;
-    }
-    
-    @Override
-    public FlowBlock getEnd() {
-        return this.end;
-    }
-    
-    @Override
-    public void enableLabelName() {
-        this.labelName = "switch_" + this.hashCode() + ":";
-    }
-    
-    @Override
-    public String getLabelName() {
-        return this.labelName;
-    }
-    
+
     public static class Case {
         public List<CaseAnnotation> annotations = new LinkedList<>();
         private FlowBlock block;
@@ -111,22 +91,44 @@ public class SwitchNode extends AbstractCodeNode implements IBreakableNode {
 //        public CaseAnnotation[] getAnnotations() {
 //            return annotations;
 //        }
-        
+
         public FlowBlock getBlock() {
             return block;
         }
-        
+
         @Override
         public String toString() {
-            //            for (int i = 0; i < annotations.length; i++) {
+            StringBuilder bld = new StringBuilder();
+//            for (int i = 0; i < annotations.length; i++) {
 //                bld.append(annotations[i]);
 //                if ((i + 1) < annotations.length)
 //                    bld.append(" AND ");
 //            }
-            return "\tcase ... GOTO flow_" + block.getBlockID();
+            bld.append("\tcase ... GOTO flow_" + block.getBlockID());
+            return bld.toString();
         }
-        
+
     }
-    
-    
+
+    @Override
+    public boolean canBreak() {
+        return this.end != null;
+    }
+
+    @Override
+    public FlowBlock getEnd() {
+        return this.end;
+    }
+
+    @Override
+    public void enableLabelName() {
+        this.labelName = "switch_" + this.hashCode() + ":";
+    }
+
+    @Override
+    public String getLabelName() {
+        return this.labelName;
+    }
+
+
 }
