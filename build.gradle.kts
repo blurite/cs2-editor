@@ -9,7 +9,7 @@ plugins {
 
 allprojects {
     group = "io.blurite.cs2"
-    version = "1.5.1"
+    version = "1.5.2"
     
     repositories {
         mavenCentral()
