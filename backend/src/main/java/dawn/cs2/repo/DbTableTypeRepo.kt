@@ -49,6 +49,7 @@ object DbTableTypeRepo {
         640 to arrayOf(INT),
         656 to arrayOf(STRING),
         672 to arrayOf(BOOLEAN),
+        688 to arrayOf(BOOLEAN), // custom
         4096 to arrayOf(STRING, NAMED_ITEM, STRING),
         8192 to arrayOf(STRING),
         8208 to arrayOf(GRAPHIC, INT, INT),
