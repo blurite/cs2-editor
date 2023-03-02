@@ -247,6 +247,8 @@ public class FlowBlocksGenerator {
                             ptr = ret;
                     } else if (opcode == Opcodes.LOAD_VARC) {
                         stack.push(new VariableLoadNode(GlobalVariable.VARC(intInstr.getConstant(), CS2Type.INT)));
+                    } else if (opcode == PUSH_VARCLAN_SETTING) {
+                        stack.push(new VariableLoadNode(GlobalVariable.VARCLAN_SETTING(intInstr.getConstant(), CS2Type.INT)));
                     } else if (opcode == Opcodes.ARRAY_NEW) {
                         int arrayID = intInstr.getConstant() >> 16;
                         char type = (char) (intInstr.getConstant() & 0xFFFF);
@@ -406,7 +408,7 @@ public class FlowBlocksGenerator {
                         continue next;
                     }
                 }
-                throw new DecompilerException("bad stack");
+                throw new DecompilerException("bad stack: " + info + ", " + top.getType());
             }
         }
         if (mod && CS2ConstantsKt.DEBUG) {

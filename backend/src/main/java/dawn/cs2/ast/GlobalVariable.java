@@ -24,6 +24,10 @@ public class GlobalVariable implements Variable {
         return new GlobalVariable("VARC", idx, type);
     }
 
+    public static GlobalVariable VARCLAN_SETTING(int idx, CS2Type type) {
+        return new GlobalVariable("VARCLAN_SETTING", idx, type);
+    }
+
     public static GlobalVariable VARC_STRING(int idx) {
         return new GlobalVariable("STRING", idx, CS2Type.STRING);
     }
@@ -39,6 +43,7 @@ public class GlobalVariable implements Variable {
             case "CLANBIT":
             case "CLANDEF112":
             case "CLANDEF113":
+            case "VARCLAN_SETTING":
                 return find(prefix, idx, CS2Type.INT);
             case "STRING":
             case "CLANDEF_STRING":
@@ -103,6 +108,9 @@ public class GlobalVariable implements Variable {
                 break;
             case "STRING":
                 op = Opcodes.LOAD_VARCSTR_NEW;
+                break;
+            case "VARCLAN_SETTING":
+                op = Opcodes.PUSH_VARCLAN_SETTING;
                 break;
             //These are READONLY, some are not even used
             case "CLANDEF_STRING115":

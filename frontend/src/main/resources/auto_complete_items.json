@@ -15,6 +15,11 @@
 		"type": "CONSTANT"
 	},
 	{
+		"name": "VARCLAN_SETTING",
+		"return_type": "int[]",
+		"type": "CONSTANT"
+	},
+	{
 		"name": "CLAN",
 		"return_type": "int[]",
 		"type": "CONSTANT"

@@ -28,6 +28,7 @@ public class Opcodes {
     public static final int LOAD_VARCSTR_NEW = 49;
     public static final int STORE_VARC = 43;
     public static final int LOAD_VARPBIT = 25;
+    public static final int PUSH_VARCLAN_SETTING = 74;
     public static final int SWITCH = 51;
 
     public static final int ARRAY_NEW = 44;
