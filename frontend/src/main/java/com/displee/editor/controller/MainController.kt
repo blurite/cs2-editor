@@ -247,12 +247,19 @@ class MainController : Initializable {
                         clearCache()
                     }
                 }
+                loadParams()
                 loadScripts()
                 createScriptConfigurations()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+    }
+
+    private fun loadParams() {
+        status("Populating params...")
+        val paramsSize = populateAttributes(cacheLibrary)
+        println("Populated $paramsSize params...")
     }
 
     private fun loadScripts() {

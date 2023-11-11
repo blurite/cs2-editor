@@ -1,10 +1,10 @@
 package dawn.cs2;
 
+import buffer.ByteBuffer;
+import com.displee.cache.CacheLibrary;
 import dawn.cs2.ast.*;
+import definitions.ParamDefinition;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.*;
 
 public class CS2Type {
@@ -330,19 +330,29 @@ public class CS2Type {
         }
     }
 
-    static {
+    /*static {
         try {
             InputStreamReader ir = new InputStreamReader(CS2Type.class.getResourceAsStream("/cs2/attr.types.txt"));
             BufferedReader br = new BufferedReader(ir);
             String l;
             while ((l = br.readLine()) != null) {
                 String[] t = l.split(" ");
-                CS2Type.attrTypes.put(Integer.parseInt(t[0]), CS2Type.forJagexDesc(t[1].charAt(0)));
+
             }
             br.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }*/
+
+    public static int populateAttributes(CacheLibrary cacheLibrary) {
+        var paramDefinitions = cacheLibrary.index(2).archive(11).files();
+        for (var param: paramDefinitions) {
+            var definition = new ParamDefinition(param.getId());
+            ParamDefinition.decode(definition, new ByteBuffer(param.getData()));
+            CS2Type.attrTypes.put(definition.getId(), CS2Type.forJagexDesc(definition.getStackType()));
+        }
+        return CS2Type.attrTypes.size();
     }
 
 }
