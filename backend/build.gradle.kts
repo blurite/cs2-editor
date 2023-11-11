@@ -7,6 +7,7 @@ dependencies {
     implementation("com.displee:disio:2.2")
     implementation("com.displee:rs-cache-library:6.8.1")
     implementation("org.apache.commons:commons-lang3:3.12.0")
+    implementation("it.unimi.dsi", "fastutil", "8.5.12")
 }
 
 publishing {
