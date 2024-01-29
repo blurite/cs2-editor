@@ -1,7 +1,7 @@
 package dawn.cs2;
 
-import buffer.ByteBuffer;
 import com.displee.cache.CacheLibrary;
+import com.displee.io.impl.InputBuffer;
 import dawn.cs2.ast.*;
 import definitions.ParamDefinition;
 
@@ -349,7 +349,7 @@ public class CS2Type {
         var paramDefinitions = cacheLibrary.index(2).archive(11).files();
         for (var param: paramDefinitions) {
             var definition = new ParamDefinition(param.getId());
-            ParamDefinition.decode(definition, new ByteBuffer(param.getData()));
+            ParamDefinition.decode(definition, new InputBuffer(param.getData()));
             CS2Type.attrTypes.put(definition.getId(), CS2Type.forJagexDesc(definition.getStackType()));
         }
         return CS2Type.attrTypes.size();
