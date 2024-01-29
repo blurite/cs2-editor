@@ -1,6 +1,6 @@
 package definitions
 
-import buffer.ByteBuffer
+import com.displee.io.impl.InputBuffer
 
 class ParamDefinition(val id: Int = 0) {
     var stackType: Char = 0.toChar()
@@ -9,7 +9,7 @@ class ParamDefinition(val id: Int = 0) {
     var autoDisable: Boolean = true
     companion object {
         @JvmStatic
-        fun ParamDefinition.decode(buffer: ByteBuffer) {
+        fun ParamDefinition.decode(buffer: InputBuffer) {
             while (true) {
                 val opcode: Int = buffer.readUnsignedByte()
                 if (opcode == 0) {
@@ -20,10 +20,10 @@ class ParamDefinition(val id: Int = 0) {
         }
 
         @JvmStatic
-        private fun ParamDefinition.decode(buffer: ByteBuffer, opcode: Int) {
+        private fun ParamDefinition.decode(buffer: InputBuffer, opcode: Int) {
             when (opcode) {
                 1 -> {
-                    stackType = buffer.readJagexChar()
+                    stackType = InputBuffer.byteToChar(buffer.readUnsignedByte().toByte()) ?:
                     return
                 }
 
