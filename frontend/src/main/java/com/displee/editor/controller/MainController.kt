@@ -468,7 +468,7 @@ class MainController : Initializable {
 
         when (outputFile.extension) {
             "dat" -> {
-                val function = CS2ScriptParser.parse(activeCodeArea.text, opcodesDatabase, scriptsDatabase)
+                val function = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
                 val compiler = CS2Compiler(function)
                 val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
                 outputFile.writeBytes(compiled)
@@ -483,7 +483,7 @@ class MainController : Initializable {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
         try {
-            val parser = CS2ScriptParser.parse(activeCodeArea.text, opcodesDatabase, scriptsDatabase)
+            val parser = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
             activeCodeArea.autoCompletePopup?.init(parser)
             refreshAssemblyCode()
             printConsoleMessage("Compiled script ${script.scriptID}.")
@@ -491,6 +491,10 @@ class MainController : Initializable {
             t.printStackTrace()
             printConsoleMessage(t.message)
         }
+    }
+
+    private fun String.removeCommentedLines(): String {
+        return this.lines().filter { !it.trimIndent().startsWith("//") }.joinToString("\n")
     }
 
     private fun newScript(newId: Int?) {
@@ -514,7 +518,7 @@ class MainController : Initializable {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
         try {
-            val function = CS2ScriptParser.parse(activeCodeArea.text, opcodesDatabase, scriptsDatabase)
+            val function = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
             val compiler = CS2Compiler(function, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
             val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
             cacheLibrary.put(SCRIPTS_INDEX, script.scriptID, compiled)
