@@ -67,6 +67,9 @@ class MainController : Initializable {
     private lateinit var newMenuItem: MenuItem
 
     @FXML
+    private lateinit var importScriptMenuItem: MenuItem
+
+    @FXML
     private lateinit var aboutMenuItem: MenuItem
 
     @FXML
@@ -110,11 +113,20 @@ class MainController : Initializable {
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         rootPane.addEventHandler(KeyEvent.KEY_PRESSED) { e: KeyEvent ->
-            if (e.isControlDown && e.code == KeyCode.N) {
-                if (!this::cacheLibrary.isInitialized) {
-                    return@addEventHandler
+            when {
+                e.isControlDown && e.code == KeyCode.N -> {
+                    if (!this::cacheLibrary.isInitialized) {
+                        return@addEventHandler
+                    }
+                    newScript(notifyChooseScriptId(cacheLibrary.index(SCRIPTS_INDEX).nextId()))
                 }
-                newScript(notifyChooseScriptId(cacheLibrary.index(SCRIPTS_INDEX).nextId()))
+
+                e.isControlDown && e.code == KeyCode.I -> {
+                    if (!this::cacheLibrary.isInitialized) {
+                        return@addEventHandler
+                    }
+                    importScript()
+                }
             }
         }
         openMenuItem.setOnAction {
@@ -140,6 +152,9 @@ class MainController : Initializable {
         }
         newMenuItem.setOnAction {
             newScript(notifyChooseScriptId(cacheLibrary.index(SCRIPTS_INDEX).nextId()))
+        }
+        importScriptMenuItem.setOnAction {
+            importScript()
         }
         aboutMenuItem.setOnAction {
             AboutWindow()
@@ -194,7 +209,8 @@ class MainController : Initializable {
         }
         tabPane.selectionModel.selectedItemProperty().addListener { observable, oldValue, newValue ->
             if (oldValue != null) {
-                val codeArea = ((oldValue.content as BorderPane).center as VirtualizedScrollPane<MainCodeArea>).content as MainCodeArea
+                val codeArea =
+                    ((oldValue.content as BorderPane).center as VirtualizedScrollPane<MainCodeArea>).content as MainCodeArea
                 codeArea.autoCompletePopup?.hide()
             }
             if (newValue == null || newValue.userData == null) {
@@ -275,7 +291,13 @@ class MainController : Initializable {
             try {
                 if (text.startsWith("op_")) {
                     val data = cacheLibrary.data(SCRIPTS_INDEX, i)
-                    val script = CS2Reader.readCS2ScriptNewFormat(data, i, scriptConfiguration.unscrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+                    val script = CS2Reader.readCS2ScriptNewFormat(
+                        data,
+                        i,
+                        scriptConfiguration.unscrambled,
+                        scriptConfiguration.disableSwitches,
+                        scriptConfiguration.disableLongs
+                    )
                     val opcode = text.replace("op_", "").toInt()
                     for (instruction in script.instructions) {
                         if (instruction.opcode == opcode) {
@@ -299,7 +321,11 @@ class MainController : Initializable {
         scriptList.items.addAll(list)
     }
 
-    private fun createCodeArea(initialText: String, showLineNumbers: Boolean = false, editable: Boolean = true): MainCodeArea {
+    private fun createCodeArea(
+        initialText: String,
+        showLineNumbers: Boolean = false,
+        editable: Boolean = true
+    ): MainCodeArea {
         val codeArea = MainCodeArea(editable)
         if (showLineNumbers) {
             codeArea.paragraphGraphicFactory = LineNumberFactory.get(codeArea)
@@ -342,6 +368,7 @@ class MainController : Initializable {
         Platform.runLater {
             scriptList.isDisable = false
             newMenuItem.isDisable = false
+            importScriptMenuItem.isDisable = false
             saveScriptAs.isDisable = false
             buildMenuItem.isDisable = false
             exportSignatures.isDisable = false
@@ -398,7 +425,13 @@ class MainController : Initializable {
 
     private fun readScript(id: Int): CS2? {
         val data = cacheLibrary.data(SCRIPTS_INDEX, id)
-        return CS2Reader.readCS2ScriptNewFormat(data, id, scriptConfiguration.unscrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+        return CS2Reader.readCS2ScriptNewFormat(
+            data,
+            id,
+            scriptConfiguration.unscrambled,
+            scriptConfiguration.disableSwitches,
+            scriptConfiguration.disableLongs
+        )
     }
 
     private fun cacheAllScripts() {
@@ -428,7 +461,13 @@ class MainController : Initializable {
 
     private fun decompileScript(id: Int): String {
         val data = cacheLibrary.data(SCRIPTS_INDEX, id)
-        val script = CS2Reader.readCS2ScriptNewFormat(data, id, scriptConfiguration.unscrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+        val script = CS2Reader.readCS2ScriptNewFormat(
+            data,
+            id,
+            scriptConfiguration.unscrambled,
+            scriptConfiguration.disableSwitches,
+            scriptConfiguration.disableLongs
+        )
         val decompiler = CS2Decompiler(script, opcodesDatabase, scriptsDatabase)
         try {
             decompiler.decompile()
@@ -468,11 +507,13 @@ class MainController : Initializable {
 
         when (outputFile.extension) {
             "dat" -> {
-                val function = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
+                val function =
+                    CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
                 val compiler = CS2Compiler(function)
                 val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
                 outputFile.writeBytes(compiled)
             }
+
             "cs2" -> outputFile.writeText(activeCodeArea.text)
             else -> throw IllegalStateException("Invalid ")
         }
@@ -483,7 +524,8 @@ class MainController : Initializable {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
         try {
-            val parser = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
+            val parser =
+                CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
             activeCodeArea.autoCompletePopup?.init(parser)
             refreshAssemblyCode()
             printConsoleMessage("Compiled script ${script.scriptID}.")
@@ -502,7 +544,12 @@ class MainController : Initializable {
             return
         }
         val function = CS2ScriptParser.parse("void script_$newId() {\n\treturn;\n}", opcodesDatabase, scriptsDatabase)
-        val compiler = CS2Compiler(function, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+        val compiler = CS2Compiler(
+            function,
+            scriptConfiguration.scrambled,
+            scriptConfiguration.disableSwitches,
+            scriptConfiguration.disableLongs
+        )
         val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
         cacheLibrary.put(SCRIPTS_INDEX, newId, compiled)
 
@@ -514,12 +561,71 @@ class MainController : Initializable {
         }
     }
 
+    private fun importScript() {
+        val fileChooser = FileChooser().apply {
+            title = "Import Script"
+            extensionFilters.addAll(
+                FileChooser.ExtensionFilter("Script Files", "*.cs2"),
+                FileChooser.ExtensionFilter("Compiled Script Files", "*.dat")
+            )
+        }
+        val file = fileChooser.showOpenDialog(mainWindow()) ?: return
+        try {
+            val fileName = file.name
+            val scriptId: Int = extractScriptIdFromFileName(fileName)
+            val isUpdateSuccessful: Boolean
+            when {
+                fileName.endsWith(".cs2") -> {
+                    val scriptContent = file.readText()
+                    val function = CS2ScriptParser.parse(scriptContent, opcodesDatabase, scriptsDatabase)
+                    val compiler = CS2Compiler(function)
+                    val compiled = compiler.compile(null) ?: throw IllegalStateException("Failed to compile.")
+                    cacheLibrary.put(SCRIPTS_INDEX, scriptId, compiled)
+                    isUpdateSuccessful = cacheLibrary.index(SCRIPTS_INDEX).update()
+                    Notification.info("Successfully imported script with ID $scriptId.")
+                }
+
+                fileName.endsWith(".dat") -> {
+                    val compiledData = file.readBytes()
+                    cacheLibrary.put(SCRIPTS_INDEX, scriptId, compiledData)
+                    isUpdateSuccessful = cacheLibrary.index(SCRIPTS_INDEX).update()
+                    Notification.info("Successfully imported compiled script with ID $scriptId.")
+                }
+
+                else -> {
+                    Notification.error("Unsupported file type: $fileName")
+                    return
+                }
+            }
+            if (isUpdateSuccessful) {
+                loadScripts()
+            } else {
+                Notification.error("Failed to import script.")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Notification.error("Failed to import script: ${e.message}")
+        }
+    }
+
+    private fun extractScriptIdFromFileName(fileName: String): Int {
+        val baseName = fileName.substringBeforeLast(".")
+        return baseName.toIntOrNull()
+            ?: throw IllegalArgumentException("Invalid file name format: $fileName. Expected format: <id>.cs2 or <id>.dat")
+    }
+
     private fun packScript() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
         try {
-            val function = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
-            val compiler = CS2Compiler(function, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+            val function =
+                CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
+            val compiler = CS2Compiler(
+                function,
+                scriptConfiguration.scrambled,
+                scriptConfiguration.disableSwitches,
+                scriptConfiguration.disableLongs
+            )
             val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
             cacheLibrary.put(SCRIPTS_INDEX, script.scriptID, compiled)
             activeCodeArea.autoCompletePopup?.init(function)
@@ -546,13 +652,19 @@ class MainController : Initializable {
     }
 
     private fun printConsoleMessage(line: String?) {
-        compileArea.text = timeFormat.format(Date.from(Instant.now())) + " -> " + line + System.lineSeparator() + compileArea.text
+        compileArea.text =
+            timeFormat.format(Date.from(Instant.now())) + " -> " + line + System.lineSeparator() + compileArea.text
     }
 
     private fun refreshAssemblyCode() {
         try {
             val parser = CS2ScriptParser.parse(activeCodeArea().text, opcodesDatabase, scriptsDatabase)
-            val compiler = CS2Compiler(parser, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+            val compiler = CS2Compiler(
+                parser,
+                scriptConfiguration.scrambled,
+                scriptConfiguration.disableSwitches,
+                scriptConfiguration.disableLongs
+            )
             val stringWriter = StringWriter()
             val writer = PrintWriter(stringWriter)
             compiler.compile(writer)
@@ -564,7 +676,8 @@ class MainController : Initializable {
     }
 
     private fun replaceAssemblyCode(code: String) {
-        val assemblyCodeArea = ((assemblyCodePane.center as BorderPane).center as VirtualizedScrollPane<CodeArea>).content as CodeArea
+        val assemblyCodeArea =
+            ((assemblyCodePane.center as BorderPane).center as VirtualizedScrollPane<CodeArea>).content as CodeArea
         assemblyCodeArea.replaceText(0, assemblyCodeArea.length, code)
     }
 
@@ -659,9 +772,15 @@ class MainController : Initializable {
             TOPLEVEL_INTERFACE
         )
 
-        private val KEYWORD_PATTERN = "\\b(" + java.lang.String.join("|", *KEYWORDS.map { it.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()) + ")\\b"
+        private val KEYWORD_PATTERN = "\\b(" + java.lang.String.join(
+            "|",
+            *KEYWORDS.map { it.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()
+        ) + ")\\b"
         private var VAR_PATTERN = "\\b(" + java.lang.String.join("|", *VAR_LIST.toTypedArray()) + ")\\b"
-        private val BICLASS_PATTERN = "\\b(" + java.lang.String.join("|", *BI_CLASSES.map { it.name.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()) + ")\\b"
+        private val BICLASS_PATTERN = "\\b(" + java.lang.String.join(
+            "|",
+            *BI_CLASSES.map { it.name.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()
+        ) + ")\\b"
 
         private const val PAREN_PATTERN = "\\(|\\)"
         private const val BRACE_PATTERN = "\\{|\\}"
@@ -678,7 +797,8 @@ class MainController : Initializable {
 
         fun computeHighlighting(text: String): StyleSpans<Collection<String>>? {
             VAR_PATTERN = "\\b(" + java.lang.String.join("|", *VAR_LIST.toTypedArray()) + ")\\b"
-            val pattern = Pattern.compile("(?<KEYWORD>$KEYWORD_PATTERN)|(?<BICLASS>$BICLASS_PATTERN)|(?<NUMBER>$NUMBER_PATTERN)|(?<PAREN>$PAREN_PATTERN)|(?<BRACE>$BRACE_PATTERN)|(?<BRACKET>$BRACKET_PATTERN)|(?<SEMICOLON>$SEMICOLON_PATTERN)|(?<STRING>$STRING_PATTERN)|(?<COMMENT>$COMMENT_PATTERN)|(?<COLOR>$COLOR_PATTERN)|(?<VAR>$VAR_PATTERN)"/*|(?<CS2CALL>$CS2_CALL_PATTERN)|(?<CS2HOOK>$CS2_HOOK_PATTERN)"*/)
+            val pattern =
+                Pattern.compile("(?<KEYWORD>$KEYWORD_PATTERN)|(?<BICLASS>$BICLASS_PATTERN)|(?<NUMBER>$NUMBER_PATTERN)|(?<PAREN>$PAREN_PATTERN)|(?<BRACE>$BRACE_PATTERN)|(?<BRACKET>$BRACKET_PATTERN)|(?<SEMICOLON>$SEMICOLON_PATTERN)|(?<STRING>$STRING_PATTERN)|(?<COMMENT>$COMMENT_PATTERN)|(?<COLOR>$COLOR_PATTERN)|(?<VAR>$VAR_PATTERN)"/*|(?<CS2CALL>$CS2_CALL_PATTERN)|(?<CS2HOOK>$CS2_HOOK_PATTERN)"*/)
             val matcher: Matcher = pattern.matcher(text)
             var lastKwEnd = 0
             val spansBuilder = StyleSpansBuilder<Collection<String>>()
@@ -693,8 +813,8 @@ class MainController : Initializable {
                     matcher.group("NUMBER") != null -> "number"
                     matcher.group("COMMENT") != null -> "comment"
                     matcher.group("BICLASS") != null -> "biclass"
-					/*matcher.group("CS2CALL") != null -> "cs2-call"
-					matcher.group("CS2HOOK") != null -> "cs2-hook"*/
+                    /*matcher.group("CS2CALL") != null -> "cs2-call"
+                    matcher.group("CS2HOOK") != null -> "cs2-hook"*/
                     matcher.group("COLOR") != null -> "color"
                     matcher.group("VAR") != null -> "var"
                     else -> null

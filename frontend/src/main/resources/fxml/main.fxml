@@ -24,6 +24,7 @@
                         <Menu mnemonicParsing="false" text="Open Recent"/>
                         <SeparatorMenuItem mnemonicParsing="false"/>
                         <MenuItem fx:id="newMenuItem" disable="true" mnemonicParsing="false" text="New Script (Ctrl + N)"/>
+                        <MenuItem fx:id="importScriptMenuItem" disable="true" mnemonicParsing="false" text="Import Script (Ctrl + I)"/>
                         <SeparatorMenuItem mnemonicParsing="false"/>
                         <MenuItem fx:id="saveScriptAs" disable="true" mnemonicParsing="false" text="Save As"/>
                         <MenuItem fx:id="buildMenuItem" disable="true" mnemonicParsing="false" text="Pack Script (Ctrl + D)"/>
