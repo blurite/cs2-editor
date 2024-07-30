@@ -2,17 +2,21 @@ package com.displee.editor
 
 import com.displee.editor.controller.MainController
 import javafx.application.Application
+import javafx.application.Platform
+import javafx.event.EventHandler
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
+import javafx.stage.WindowEvent
 import java.awt.AWTException
 import java.awt.Image
 import java.awt.SystemTray
 import java.awt.TrayIcon
 import java.io.IOException
 import javax.imageio.ImageIO
+import kotlin.system.exitProcess
 
 lateinit var mainController: MainController
 
@@ -76,6 +80,12 @@ class Editor : Application() {
         }
         stage.title = "Displee's CS2 editor"
         setIcons(stage)
+
+        stage.onCloseRequest = EventHandler {
+            Platform.exit()
+            exitProcess(0)
+        }
+
         stage.show()
     }
 }
