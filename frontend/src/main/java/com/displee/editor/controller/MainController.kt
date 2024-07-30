@@ -15,6 +15,7 @@ import dawn.cs2.*
 import dawn.cs2.CS2Type.*
 import dawn.cs2.util.FunctionDatabase
 import javafx.application.Platform
+import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
 import javafx.scene.Node
@@ -26,6 +27,7 @@ import javafx.stage.DirectoryChooser
 import javafx.stage.FileChooser
 import javafx.stage.Window
 import javafx.util.Callback
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.fxmisc.flowless.VirtualizedScrollPane
@@ -34,6 +36,7 @@ import org.fxmisc.richtext.LineNumberFactory
 import org.fxmisc.richtext.model.StyleSpans
 import org.fxmisc.richtext.model.StyleSpansBuilder
 import java.io.File
+import java.io.IOException
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URL
@@ -43,13 +46,15 @@ import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import kotlin.io.path.div
-import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
 class MainController : Initializable {
 
     @FXML
     private lateinit var openMenuItem: MenuItem
+
+    @FXML
+    private lateinit var openRecentMenu: Menu
 
     @FXML
     private lateinit var saveScriptAs: MenuItem
@@ -91,9 +96,6 @@ class MainController : Initializable {
     private lateinit var tabPane: TabPane
 
     @FXML
-    private lateinit var compilePane: BorderPane
-
-    @FXML
     private lateinit var compileArea: TextArea
 
     @FXML
@@ -111,7 +113,14 @@ class MainController : Initializable {
 
     private var currentScript: CS2? = null
 
+    private val recentPaths = mutableListOf<File>()
+    private val maxRecentPaths = 10 // Set how many recent paths that is allowed to be cached.
+    private val recentPathsFile = File("recent_paths.dat")
+
     override fun initialize(location: URL?, resources: ResourceBundle?) {
+        // Load recent paths
+        loadRecentPaths()
+
         rootPane.addEventHandler(KeyEvent.KEY_PRESSED) { e: KeyEvent ->
             when {
                 e.isControlDown && e.code == KeyCode.N -> {
@@ -129,6 +138,7 @@ class MainController : Initializable {
                 }
             }
         }
+
         openMenuItem.setOnAction {
             openCache()
         }
@@ -159,6 +169,7 @@ class MainController : Initializable {
         aboutMenuItem.setOnAction {
             AboutWindow()
         }
+
         scriptList.cellFactory = object : Callback<ListView<Int>, ListCell<Int>> {
             override fun call(param: ListView<Int>): ListCell<Int> {
                 return object : ListCell<Int>() {
@@ -172,6 +183,7 @@ class MainController : Initializable {
                 }
             }
         }
+
         scriptList.selectionModel.selectedItemProperty().addListener { observable, oldValue, newValue ->
             if (newValue == null) {
                 return@addListener
@@ -201,12 +213,14 @@ class MainController : Initializable {
             refreshAssemblyCode()
             compileScript()
         }
+
         searchField.textProperty().addListener { observable, oldValue, newValue ->
             if (newValue == null) {
                 return@addListener
             }
             search(newValue)
         }
+
         tabPane.selectionModel.selectedItemProperty().addListener { observable, oldValue, newValue ->
             if (oldValue != null) {
                 val codeArea =
@@ -222,6 +236,7 @@ class MainController : Initializable {
             currentScript = newValue.userData as CS2
             refreshAssemblyCode()
         }
+
         assemblyCodePane.center = BorderPane(VirtualizedScrollPane(createCodeArea("", editable = false)))
 
         // Disable assembly pane by default
@@ -230,14 +245,19 @@ class MainController : Initializable {
 
         // init singleton
         AutoCompleteUtils
+
+        // Update recent files menu
+        updateRecentPathMenu()
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     private fun openCache(f: File? = null) {
         var mehFile = f
         if (mehFile == null) {
             val chooser = DirectoryChooser()
             mehFile = chooser.showDialog(mainWindow()) ?: return
         }
+        addRecentPath(mehFile)
         scriptList.isDisable = true
         GlobalScope.launch {
             try {
@@ -269,6 +289,59 @@ class MainController : Initializable {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    private fun addRecentPath(file: File) {
+        if (recentPaths.contains(file)) {
+            recentPaths.remove(file)
+        }
+        recentPaths.add(0, file)
+        if (recentPaths.size > maxRecentPaths) {
+            recentPaths.removeAt(maxRecentPaths)
+        }
+        updateRecentPathMenu()
+        saveRecentPaths()
+    }
+
+    private fun updateRecentPathMenu() {
+        openRecentMenu.items.clear()
+        recentPaths.forEach { file ->
+            val menuItem = MenuItem(file.absolutePath)
+            menuItem.onAction = EventHandler { openCache(file) }
+            openRecentMenu.items.add(menuItem)
+        }
+    }
+
+    private fun saveRecentPaths() {
+        try {
+            recentPathsFile.bufferedWriter().use { writer ->
+                recentPaths.forEach { file ->
+                    writer.write(file.absolutePath)
+                    writer.newLine()
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Notification.error("Failed to save recent path: ${e.message}")
+        }
+    }
+
+    private fun loadRecentPaths() {
+        try {
+            if (recentPathsFile.exists()) {
+                recentPathsFile.bufferedReader().useLines { lines ->
+                    lines.forEach { path ->
+                        val file = File(path)
+                        if (file.exists()) {
+                            recentPaths.add(file)
+                        }
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Notification.error("Failed to load recent paths from recent_paths.dat: ${e.message}")
         }
     }
 
