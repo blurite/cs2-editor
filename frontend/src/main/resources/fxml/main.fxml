@@ -36,6 +36,10 @@
                         <CheckMenuItem fx:id="showAssemblyMenuItem" mnemonicParsing="false" selected="true" text="Show assembly"/>
                     </items>
                 </Menu>
+                <Menu mnemonicParsing="false" text="Theme">
+                    <CheckMenuItem fx:id="darkThemeMenuItem" mnemonicParsing="false" selected="true" text="Dark"/>
+                    <CheckMenuItem fx:id="lightThemeMenuItem" mnemonicParsing="false" text="Light"/>
+                </Menu>
                 <Menu mnemonicParsing="false" text="Help">
                     <items>
                         <MenuItem fx:id="aboutMenuItem" mnemonicParsing="false" text="About"/>

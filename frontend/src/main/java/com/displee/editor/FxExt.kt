@@ -12,8 +12,8 @@ import javafx.scene.layout.RowConstraints
 fun notifyChooseScriptId(scriptId: Int): Int? {
     val array = arrayOf("Generate new script id", "Custom script id")
     val dialog = ChoiceDialog(array[0], *array)
-    dialog.dialogPane.stylesheets.add("/css/theme.css")
-    dialog.dialogPane.stylesheets.add("/css/custom.css")
+    dialog.dialogPane.stylesheets.add("/css/theme/dark/theme.css")
+    dialog.dialogPane.stylesheets.add("/css/theme/dark/custom.css")
     dialog.title = "Create new interface"
     dialog.headerText = "Choose your script id"
     dialog.contentText = "Choose:"

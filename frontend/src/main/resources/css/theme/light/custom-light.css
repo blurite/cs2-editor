@@ -1,0 +1,36 @@
+#scriptList, #mainCodePane, #assemblyCodePane, #compilePane, #compileArea, #compileToolbar, #compileArea .content {
+    -fx-background-color: #FFFFFF;
+}
+#searchField {
+    -fx-background-image: url('/images/icon-search.png');
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: left 4 center;
+    -fx-background-size: 27;
+    -fx-padding: 8px 35px;
+}
+.context-menu-light {
+    -fx-font-family: "JetBrains Mono";
+    -fx-background-color: #F5F5F5;
+    -fx-border-color: #CCCCCC;
+    -fx-border-width: 0;
+}
+#compileArea {
+    -fx-font-family: "JetBrains Mono";
+}
+.context-menu-light .list-cell {
+    -fx-padding: 2px 5px;
+    -fx-background-color: #F5F5F5;
+    -fx-min-height: 24px;
+    -fx-pref-height: 24px;
+    -fx-max-height: 24px;
+    -fx-border-width: 0;
+}
+.context-menu-light .list-cell:hover {
+    -fx-background-color: rgba(66, 74, 86, 0.2);
+}
+.context-menu-light .list-cell:selected {
+    -fx-background-color: #E0E0E0;
+}
+.list-cell:empty {
+    -fx-opacity: 0;
+}

@@ -9,7 +9,6 @@ import javafx.fxml.Initializable
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
-import javafx.stage.WindowEvent
 import java.awt.AWTException
 import java.awt.Image
 import java.awt.SystemTray
@@ -73,10 +72,10 @@ class Editor : Application() {
         val root = loader.load<Parent>()
 
         stage.scene = Scene(root, 1200.0, 800.0).also {
-            it.stylesheets.add("/css/theme.css")
-            it.stylesheets.add("/css/custom.css")
-            it.stylesheets.add("/css/highlight.css")
-            it.stylesheets.add("/css/code-area-ui.css")
+            it.stylesheets.add("/css/theme/dark/theme.css")
+            it.stylesheets.add("/css/theme/dark/custom.css")
+            it.stylesheets.add("/css/theme/dark/highlight.css")
+            it.stylesheets.add("/css/theme/dark/code-area-ui.css")
         }
         stage.title = "Displee's CS2 editor"
         setIcons(stage)

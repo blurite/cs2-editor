@@ -101,6 +101,12 @@ class MainController : Initializable {
     @FXML
     private lateinit var assemblyCodePane: BorderPane
 
+    @FXML
+    private lateinit var darkThemeMenuItem: CheckMenuItem
+
+    @FXML
+    private lateinit var lightThemeMenuItem: CheckMenuItem
+
     private val cachedScripts = mutableMapOf<Int, String>()
 
     private var temporaryAssemblyPane: Node? = null
@@ -168,6 +174,14 @@ class MainController : Initializable {
         }
         aboutMenuItem.setOnAction {
             AboutWindow()
+        }
+
+        darkThemeMenuItem.setOnAction {
+            handleThemeSelection(darkThemeMenuItem)
+        }
+
+        lightThemeMenuItem.setOnAction {
+            handleThemeSelection(lightThemeMenuItem)
         }
 
         scriptList.cellFactory = object : Callback<ListView<Int>, ListCell<Int>> {
@@ -248,6 +262,42 @@ class MainController : Initializable {
 
         // Update recent files menu
         updateRecentPathMenu()
+    }
+
+    private fun handleThemeSelection(selectedItem: CheckMenuItem) {
+        when (selectedItem.text) {
+            "Dark" -> {
+                applyDarkTheme()
+                lightThemeMenuItem.isSelected = false
+            }
+            "Light" -> {
+                applyLightTheme()
+                darkThemeMenuItem.isSelected = false
+            }
+        }
+    }
+
+    private fun applyDarkTheme() {
+        applyStylesheets(
+            "/css/theme/dark/theme.css",
+            "/css/theme/dark/custom.css",
+            "/css/theme/dark/highlight.css",
+            "/css/theme/dark/code-area-ui.css"
+        )
+    }
+
+    private fun applyLightTheme() {
+        applyStylesheets(
+            "/css/theme/light/theme-light.css",
+            "/css/theme/light/custom-light.css",
+            "/css/theme/light/highlight-light.css",
+            "/css/theme/light/code-area-ui-light.css"
+        )
+    }
+
+    private fun applyStylesheets(vararg stylesheets: String) {
+        rootPane.scene.stylesheets.clear()
+        rootPane.scene.stylesheets.addAll(stylesheets)
     }
 
     @OptIn(DelicateCoroutinesApi::class)
