@@ -1,6 +1,6 @@
 package dawn.cs2
 
-object Opcodes {
+object CS2Opcodes {
     const val SS_AND = -2
     const val SS_OR = -1
     const val PUSH_CONSTANT_INT = 0
