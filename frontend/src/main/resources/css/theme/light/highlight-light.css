@@ -1,0 +1,63 @@
+
+.styled-text-area .text {
+    -fx-fill: #333333;
+}
+
+.styled-text-area .text.keyword {
+    -fx-fill: #0000FF;
+}
+
+.styled-text-area .text.semicolon {
+    -fx-fill: #0000FF;
+}
+
+.styled-text-area .text.string {
+    -fx-fill: #D14;
+}
+
+.styled-text-area .text.comment {
+    -fx-fill: #008000;
+}
+
+.styled-text-area .text.paragraph-box:has-caret {
+    -fx-background-color: #F5F5F5;
+}
+
+.styled-text-area .selection {
+    -fx-fill: #3399FF;
+}
+
+.styled-text-area .biclass {
+    -fx-fill: #008080;
+}
+
+.styled-text-area .number {
+    -fx-fill: #000080;
+}
+
+.styled-text-area .cs2-call {
+    -fx-fill: #FFD700;
+}
+
+.styled-text-area .color {
+    -fx-fill: #006400;
+}
+
+.styled-text-area .caret {
+    -fx-stroke: #000000;
+}
+
+.styled-text-area .lineno {
+    -fx-font-style: normal;
+    -fx-fill: #808080;
+    -fx-background-color: #E0E0E0;
+    -fx-pref-width: 50px;
+    -fx-alignment: center-left;
+    -fx-pref-height: 50px;
+    -fx-font-size: 14px;
+    -fx-cursor: default;
+}
+
+.styled-text-area .var {
+    -fx-background-color: #F0F0F0;
+}

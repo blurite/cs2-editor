@@ -2,6 +2,8 @@ package com.displee.editor
 
 import com.displee.editor.controller.MainController
 import javafx.application.Application
+import javafx.application.Platform
+import javafx.event.EventHandler
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
 import javafx.scene.Parent
@@ -13,6 +15,7 @@ import java.awt.SystemTray
 import java.awt.TrayIcon
 import java.io.IOException
 import javax.imageio.ImageIO
+import kotlin.system.exitProcess
 
 lateinit var mainController: MainController
 
@@ -69,13 +72,19 @@ class Editor : Application() {
         val root = loader.load<Parent>()
 
         stage.scene = Scene(root, 1200.0, 800.0).also {
-            it.stylesheets.add("/css/theme.css")
-            it.stylesheets.add("/css/custom.css")
-            it.stylesheets.add("/css/highlight.css")
-            it.stylesheets.add("/css/code-area-ui.css")
+            it.stylesheets.add("/css/theme/dark/theme.css")
+            it.stylesheets.add("/css/theme/dark/custom.css")
+            it.stylesheets.add("/css/theme/dark/highlight.css")
+            it.stylesheets.add("/css/theme/dark/code-area-ui.css")
         }
         stage.title = "Displee's CS2 editor"
         setIcons(stage)
+
+        stage.onCloseRequest = EventHandler {
+            Platform.exit()
+            exitProcess(0)
+        }
+
         stage.show()
     }
 }

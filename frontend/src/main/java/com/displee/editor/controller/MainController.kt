@@ -15,6 +15,7 @@ import dawn.cs2.*
 import dawn.cs2.CS2Type.*
 import dawn.cs2.util.FunctionDatabase
 import javafx.application.Platform
+import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
 import javafx.scene.Node
@@ -26,6 +27,7 @@ import javafx.stage.DirectoryChooser
 import javafx.stage.FileChooser
 import javafx.stage.Window
 import javafx.util.Callback
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.fxmisc.flowless.VirtualizedScrollPane
@@ -34,6 +36,7 @@ import org.fxmisc.richtext.LineNumberFactory
 import org.fxmisc.richtext.model.StyleSpans
 import org.fxmisc.richtext.model.StyleSpansBuilder
 import java.io.File
+import java.io.IOException
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URL
@@ -43,13 +46,15 @@ import java.util.*
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import kotlin.io.path.div
-import kotlin.io.path.writeBytes
 import kotlin.io.path.writeText
 
 class MainController : Initializable {
 
     @FXML
     private lateinit var openMenuItem: MenuItem
+
+    @FXML
+    private lateinit var openRecentMenu: Menu
 
     @FXML
     private lateinit var saveScriptAs: MenuItem
@@ -65,6 +70,9 @@ class MainController : Initializable {
 
     @FXML
     private lateinit var newMenuItem: MenuItem
+
+    @FXML
+    private lateinit var importScriptMenuItem: MenuItem
 
     @FXML
     private lateinit var aboutMenuItem: MenuItem
@@ -88,13 +96,16 @@ class MainController : Initializable {
     private lateinit var tabPane: TabPane
 
     @FXML
-    private lateinit var compilePane: BorderPane
-
-    @FXML
     private lateinit var compileArea: TextArea
 
     @FXML
     private lateinit var assemblyCodePane: BorderPane
+
+    @FXML
+    private lateinit var darkThemeMenuItem: CheckMenuItem
+
+    @FXML
+    private lateinit var lightThemeMenuItem: CheckMenuItem
 
     private val cachedScripts = mutableMapOf<Int, String>()
 
@@ -108,15 +119,32 @@ class MainController : Initializable {
 
     private var currentScript: CS2? = null
 
+    private val recentPaths = mutableListOf<File>()
+    private val maxRecentPaths = 10 // Set how many recent paths that is allowed to be cached.
+    private val recentPathsFile = File("recent_paths.dat")
+
     override fun initialize(location: URL?, resources: ResourceBundle?) {
+        // Load recent paths
+        loadRecentPaths()
+
         rootPane.addEventHandler(KeyEvent.KEY_PRESSED) { e: KeyEvent ->
-            if (e.isControlDown && e.code == KeyCode.N) {
-                if (!this::cacheLibrary.isInitialized) {
-                    return@addEventHandler
+            when {
+                e.isControlDown && e.code == KeyCode.N -> {
+                    if (!this::cacheLibrary.isInitialized) {
+                        return@addEventHandler
+                    }
+                    newScript(notifyChooseScriptId(cacheLibrary.index(SCRIPTS_INDEX).nextId()))
                 }
-                newScript(notifyChooseScriptId(cacheLibrary.index(SCRIPTS_INDEX).nextId()))
+
+                e.isControlDown && e.code == KeyCode.I -> {
+                    if (!this::cacheLibrary.isInitialized) {
+                        return@addEventHandler
+                    }
+                    importScript()
+                }
             }
         }
+
         openMenuItem.setOnAction {
             openCache()
         }
@@ -141,9 +169,21 @@ class MainController : Initializable {
         newMenuItem.setOnAction {
             newScript(notifyChooseScriptId(cacheLibrary.index(SCRIPTS_INDEX).nextId()))
         }
+        importScriptMenuItem.setOnAction {
+            importScript()
+        }
         aboutMenuItem.setOnAction {
             AboutWindow()
         }
+
+        darkThemeMenuItem.setOnAction {
+            handleThemeSelection(darkThemeMenuItem)
+        }
+
+        lightThemeMenuItem.setOnAction {
+            handleThemeSelection(lightThemeMenuItem)
+        }
+
         scriptList.cellFactory = object : Callback<ListView<Int>, ListCell<Int>> {
             override fun call(param: ListView<Int>): ListCell<Int> {
                 return object : ListCell<Int>() {
@@ -157,6 +197,7 @@ class MainController : Initializable {
                 }
             }
         }
+
         scriptList.selectionModel.selectedItemProperty().addListener { observable, oldValue, newValue ->
             if (newValue == null) {
                 return@addListener
@@ -186,15 +227,18 @@ class MainController : Initializable {
             refreshAssemblyCode()
             compileScript()
         }
+
         searchField.textProperty().addListener { observable, oldValue, newValue ->
             if (newValue == null) {
                 return@addListener
             }
             search(newValue)
         }
+
         tabPane.selectionModel.selectedItemProperty().addListener { observable, oldValue, newValue ->
             if (oldValue != null) {
-                val codeArea = ((oldValue.content as BorderPane).center as VirtualizedScrollPane<MainCodeArea>).content as MainCodeArea
+                val codeArea =
+                    ((oldValue.content as BorderPane).center as VirtualizedScrollPane<MainCodeArea>).content as MainCodeArea
                 codeArea.autoCompletePopup?.hide()
             }
             if (newValue == null || newValue.userData == null) {
@@ -206,6 +250,7 @@ class MainController : Initializable {
             currentScript = newValue.userData as CS2
             refreshAssemblyCode()
         }
+
         assemblyCodePane.center = BorderPane(VirtualizedScrollPane(createCodeArea("", editable = false)))
 
         // Disable assembly pane by default
@@ -214,14 +259,55 @@ class MainController : Initializable {
 
         // init singleton
         AutoCompleteUtils
+
+        // Update recent files menu
+        updateRecentPathMenu()
     }
 
+    private fun handleThemeSelection(selectedItem: CheckMenuItem) {
+        when (selectedItem.text) {
+            "Dark" -> {
+                applyDarkTheme()
+                lightThemeMenuItem.isSelected = false
+            }
+            "Light" -> {
+                applyLightTheme()
+                darkThemeMenuItem.isSelected = false
+            }
+        }
+    }
+
+    private fun applyDarkTheme() {
+        applyStylesheets(
+            "/css/theme/dark/theme.css",
+            "/css/theme/dark/custom.css",
+            "/css/theme/dark/highlight.css",
+            "/css/theme/dark/code-area-ui.css"
+        )
+    }
+
+    private fun applyLightTheme() {
+        applyStylesheets(
+            "/css/theme/light/theme-light.css",
+            "/css/theme/light/custom-light.css",
+            "/css/theme/light/highlight-light.css",
+            "/css/theme/light/code-area-ui-light.css"
+        )
+    }
+
+    private fun applyStylesheets(vararg stylesheets: String) {
+        rootPane.scene.stylesheets.clear()
+        rootPane.scene.stylesheets.addAll(stylesheets)
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
     private fun openCache(f: File? = null) {
         var mehFile = f
         if (mehFile == null) {
             val chooser = DirectoryChooser()
             mehFile = chooser.showDialog(mainWindow()) ?: return
         }
+        addRecentPath(mehFile)
         scriptList.isDisable = true
         GlobalScope.launch {
             try {
@@ -256,6 +342,59 @@ class MainController : Initializable {
         }
     }
 
+    private fun addRecentPath(file: File) {
+        if (recentPaths.contains(file)) {
+            recentPaths.remove(file)
+        }
+        recentPaths.add(0, file)
+        if (recentPaths.size > maxRecentPaths) {
+            recentPaths.removeAt(maxRecentPaths)
+        }
+        updateRecentPathMenu()
+        saveRecentPaths()
+    }
+
+    private fun updateRecentPathMenu() {
+        openRecentMenu.items.clear()
+        recentPaths.forEach { file ->
+            val menuItem = MenuItem(file.absolutePath)
+            menuItem.onAction = EventHandler { openCache(file) }
+            openRecentMenu.items.add(menuItem)
+        }
+    }
+
+    private fun saveRecentPaths() {
+        try {
+            recentPathsFile.bufferedWriter().use { writer ->
+                recentPaths.forEach { file ->
+                    writer.write(file.absolutePath)
+                    writer.newLine()
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Notification.error("Failed to save recent path: ${e.message}")
+        }
+    }
+
+    private fun loadRecentPaths() {
+        try {
+            if (recentPathsFile.exists()) {
+                recentPathsFile.bufferedReader().useLines { lines ->
+                    lines.forEach { path ->
+                        val file = File(path)
+                        if (file.exists()) {
+                            recentPaths.add(file)
+                        }
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Notification.error("Failed to load recent paths from recent_paths.dat: ${e.message}")
+        }
+    }
+
     private fun loadParams() {
         status("Populating params...")
         val paramsSize = populateAttributes(cacheLibrary)
@@ -275,7 +414,13 @@ class MainController : Initializable {
             try {
                 if (text.startsWith("op_")) {
                     val data = cacheLibrary.data(SCRIPTS_INDEX, i)
-                    val script = CS2Reader.readCS2ScriptNewFormat(data, i, scriptConfiguration.unscrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+                    val script = CS2Reader.readCS2ScriptNewFormat(
+                        data,
+                        i,
+                        scriptConfiguration.unscrambled,
+                        scriptConfiguration.disableSwitches,
+                        scriptConfiguration.disableLongs
+                    )
                     val opcode = text.replace("op_", "").toInt()
                     for (instruction in script.instructions) {
                         if (instruction.opcode == opcode) {
@@ -299,7 +444,11 @@ class MainController : Initializable {
         scriptList.items.addAll(list)
     }
 
-    private fun createCodeArea(initialText: String, showLineNumbers: Boolean = false, editable: Boolean = true): MainCodeArea {
+    private fun createCodeArea(
+        initialText: String,
+        showLineNumbers: Boolean = false,
+        editable: Boolean = true
+    ): MainCodeArea {
         val codeArea = MainCodeArea(editable)
         if (showLineNumbers) {
             codeArea.paragraphGraphicFactory = LineNumberFactory.get(codeArea)
@@ -342,6 +491,7 @@ class MainController : Initializable {
         Platform.runLater {
             scriptList.isDisable = false
             newMenuItem.isDisable = false
+            importScriptMenuItem.isDisable = false
             saveScriptAs.isDisable = false
             buildMenuItem.isDisable = false
             exportSignatures.isDisable = false
@@ -398,7 +548,13 @@ class MainController : Initializable {
 
     private fun readScript(id: Int): CS2? {
         val data = cacheLibrary.data(SCRIPTS_INDEX, id)
-        return CS2Reader.readCS2ScriptNewFormat(data, id, scriptConfiguration.unscrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+        return CS2Reader.readCS2ScriptNewFormat(
+            data,
+            id,
+            scriptConfiguration.unscrambled,
+            scriptConfiguration.disableSwitches,
+            scriptConfiguration.disableLongs
+        )
     }
 
     private fun cacheAllScripts() {
@@ -428,7 +584,13 @@ class MainController : Initializable {
 
     private fun decompileScript(id: Int): String {
         val data = cacheLibrary.data(SCRIPTS_INDEX, id)
-        val script = CS2Reader.readCS2ScriptNewFormat(data, id, scriptConfiguration.unscrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+        val script = CS2Reader.readCS2ScriptNewFormat(
+            data,
+            id,
+            scriptConfiguration.unscrambled,
+            scriptConfiguration.disableSwitches,
+            scriptConfiguration.disableLongs
+        )
         val decompiler = CS2Decompiler(script, opcodesDatabase, scriptsDatabase)
         try {
             decompiler.decompile()
@@ -468,11 +630,13 @@ class MainController : Initializable {
 
         when (outputFile.extension) {
             "dat" -> {
-                val function = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
+                val function =
+                    CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
                 val compiler = CS2Compiler(function)
                 val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
                 outputFile.writeBytes(compiled)
             }
+
             "cs2" -> outputFile.writeText(activeCodeArea.text)
             else -> throw IllegalStateException("Invalid ")
         }
@@ -483,7 +647,8 @@ class MainController : Initializable {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
         try {
-            val parser = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
+            val parser =
+                CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
             activeCodeArea.autoCompletePopup?.init(parser)
             refreshAssemblyCode()
             printConsoleMessage("Compiled script ${script.scriptID}.")
@@ -502,7 +667,12 @@ class MainController : Initializable {
             return
         }
         val function = CS2ScriptParser.parse("void script_$newId() {\n\treturn;\n}", opcodesDatabase, scriptsDatabase)
-        val compiler = CS2Compiler(function, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+        val compiler = CS2Compiler(
+            function,
+            scriptConfiguration.scrambled,
+            scriptConfiguration.disableSwitches,
+            scriptConfiguration.disableLongs
+        )
         val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
         cacheLibrary.put(SCRIPTS_INDEX, newId, compiled)
 
@@ -514,12 +684,71 @@ class MainController : Initializable {
         }
     }
 
+    private fun importScript() {
+        val fileChooser = FileChooser().apply {
+            title = "Import Script"
+            extensionFilters.addAll(
+                FileChooser.ExtensionFilter("Script Files", "*.cs2"),
+                FileChooser.ExtensionFilter("Compiled Script Files", "*.dat")
+            )
+        }
+        val file = fileChooser.showOpenDialog(mainWindow()) ?: return
+        try {
+            val fileName = file.name
+            val scriptId: Int = extractScriptIdFromFileName(fileName)
+            val isUpdateSuccessful: Boolean
+            when {
+                fileName.endsWith(".cs2") -> {
+                    val scriptContent = file.readText()
+                    val function = CS2ScriptParser.parse(scriptContent, opcodesDatabase, scriptsDatabase)
+                    val compiler = CS2Compiler(function)
+                    val compiled = compiler.compile(null) ?: throw IllegalStateException("Failed to compile.")
+                    cacheLibrary.put(SCRIPTS_INDEX, scriptId, compiled)
+                    isUpdateSuccessful = cacheLibrary.index(SCRIPTS_INDEX).update()
+                    Notification.info("Successfully imported script with ID $scriptId.")
+                }
+
+                fileName.endsWith(".dat") -> {
+                    val compiledData = file.readBytes()
+                    cacheLibrary.put(SCRIPTS_INDEX, scriptId, compiledData)
+                    isUpdateSuccessful = cacheLibrary.index(SCRIPTS_INDEX).update()
+                    Notification.info("Successfully imported compiled script with ID $scriptId.")
+                }
+
+                else -> {
+                    Notification.error("Unsupported file type: $fileName")
+                    return
+                }
+            }
+            if (isUpdateSuccessful) {
+                loadScripts()
+            } else {
+                Notification.error("Failed to import script.")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Notification.error("Failed to import script: ${e.message}")
+        }
+    }
+
+    private fun extractScriptIdFromFileName(fileName: String): Int {
+        val baseName = fileName.substringBeforeLast(".")
+        return baseName.toIntOrNull()
+            ?: throw IllegalArgumentException("Invalid file name format: $fileName. Expected format: <id>.cs2 or <id>.dat")
+    }
+
     private fun packScript() {
         val script = currentScript ?: return
         val activeCodeArea = activeCodeArea()
         try {
-            val function = CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
-            val compiler = CS2Compiler(function, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+            val function =
+                CS2ScriptParser.parse(activeCodeArea.text.removeCommentedLines(), opcodesDatabase, scriptsDatabase)
+            val compiler = CS2Compiler(
+                function,
+                scriptConfiguration.scrambled,
+                scriptConfiguration.disableSwitches,
+                scriptConfiguration.disableLongs
+            )
             val compiled = compiler.compile(null) ?: throw Error("Failed to compile.")
             cacheLibrary.put(SCRIPTS_INDEX, script.scriptID, compiled)
             activeCodeArea.autoCompletePopup?.init(function)
@@ -546,13 +775,19 @@ class MainController : Initializable {
     }
 
     private fun printConsoleMessage(line: String?) {
-        compileArea.text = timeFormat.format(Date.from(Instant.now())) + " -> " + line + System.lineSeparator() + compileArea.text
+        compileArea.text =
+            timeFormat.format(Date.from(Instant.now())) + " -> " + line + System.lineSeparator() + compileArea.text
     }
 
     private fun refreshAssemblyCode() {
         try {
             val parser = CS2ScriptParser.parse(activeCodeArea().text, opcodesDatabase, scriptsDatabase)
-            val compiler = CS2Compiler(parser, scriptConfiguration.scrambled, scriptConfiguration.disableSwitches, scriptConfiguration.disableLongs)
+            val compiler = CS2Compiler(
+                parser,
+                scriptConfiguration.scrambled,
+                scriptConfiguration.disableSwitches,
+                scriptConfiguration.disableLongs
+            )
             val stringWriter = StringWriter()
             val writer = PrintWriter(stringWriter)
             compiler.compile(writer)
@@ -564,7 +799,8 @@ class MainController : Initializable {
     }
 
     private fun replaceAssemblyCode(code: String) {
-        val assemblyCodeArea = ((assemblyCodePane.center as BorderPane).center as VirtualizedScrollPane<CodeArea>).content as CodeArea
+        val assemblyCodeArea =
+            ((assemblyCodePane.center as BorderPane).center as VirtualizedScrollPane<CodeArea>).content as CodeArea
         assemblyCodeArea.replaceText(0, assemblyCodeArea.length, code)
     }
 
@@ -659,9 +895,15 @@ class MainController : Initializable {
             TOPLEVEL_INTERFACE
         )
 
-        private val KEYWORD_PATTERN = "\\b(" + java.lang.String.join("|", *KEYWORDS.map { it.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()) + ")\\b"
+        private val KEYWORD_PATTERN = "\\b(" + java.lang.String.join(
+            "|",
+            *KEYWORDS.map { it.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()
+        ) + ")\\b"
         private var VAR_PATTERN = "\\b(" + java.lang.String.join("|", *VAR_LIST.toTypedArray()) + ")\\b"
-        private val BICLASS_PATTERN = "\\b(" + java.lang.String.join("|", *BI_CLASSES.map { it.name.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()) + ")\\b"
+        private val BICLASS_PATTERN = "\\b(" + java.lang.String.join(
+            "|",
+            *BI_CLASSES.map { it.name.replace("[", "\\[").replace("]", "\\]") }.toTypedArray()
+        ) + ")\\b"
 
         private const val PAREN_PATTERN = "\\(|\\)"
         private const val BRACE_PATTERN = "\\{|\\}"
@@ -678,7 +920,8 @@ class MainController : Initializable {
 
         fun computeHighlighting(text: String): StyleSpans<Collection<String>>? {
             VAR_PATTERN = "\\b(" + java.lang.String.join("|", *VAR_LIST.toTypedArray()) + ")\\b"
-            val pattern = Pattern.compile("(?<KEYWORD>$KEYWORD_PATTERN)|(?<BICLASS>$BICLASS_PATTERN)|(?<NUMBER>$NUMBER_PATTERN)|(?<PAREN>$PAREN_PATTERN)|(?<BRACE>$BRACE_PATTERN)|(?<BRACKET>$BRACKET_PATTERN)|(?<SEMICOLON>$SEMICOLON_PATTERN)|(?<STRING>$STRING_PATTERN)|(?<COMMENT>$COMMENT_PATTERN)|(?<COLOR>$COLOR_PATTERN)|(?<VAR>$VAR_PATTERN)"/*|(?<CS2CALL>$CS2_CALL_PATTERN)|(?<CS2HOOK>$CS2_HOOK_PATTERN)"*/)
+            val pattern =
+                Pattern.compile("(?<KEYWORD>$KEYWORD_PATTERN)|(?<BICLASS>$BICLASS_PATTERN)|(?<NUMBER>$NUMBER_PATTERN)|(?<PAREN>$PAREN_PATTERN)|(?<BRACE>$BRACE_PATTERN)|(?<BRACKET>$BRACKET_PATTERN)|(?<SEMICOLON>$SEMICOLON_PATTERN)|(?<STRING>$STRING_PATTERN)|(?<COMMENT>$COMMENT_PATTERN)|(?<COLOR>$COLOR_PATTERN)|(?<VAR>$VAR_PATTERN)"/*|(?<CS2CALL>$CS2_CALL_PATTERN)|(?<CS2HOOK>$CS2_HOOK_PATTERN)"*/)
             val matcher: Matcher = pattern.matcher(text)
             var lastKwEnd = 0
             val spansBuilder = StyleSpansBuilder<Collection<String>>()
@@ -693,8 +936,8 @@ class MainController : Initializable {
                     matcher.group("NUMBER") != null -> "number"
                     matcher.group("COMMENT") != null -> "comment"
                     matcher.group("BICLASS") != null -> "biclass"
-					/*matcher.group("CS2CALL") != null -> "cs2-call"
-					matcher.group("CS2HOOK") != null -> "cs2-hook"*/
+                    /*matcher.group("CS2CALL") != null -> "cs2-call"
+                    matcher.group("CS2HOOK") != null -> "cs2-hook"*/
                     matcher.group("COLOR") != null -> "color"
                     matcher.group("VAR") != null -> "var"
                     else -> null

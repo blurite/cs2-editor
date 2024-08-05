@@ -14,10 +14,10 @@ class AboutWindow {
             val root = loadFXML("/fxml/about.fxml", AboutController::class.java)
             primaryStage.title = "About"
             primaryStage.scene = Scene(root).also {
-                it.stylesheets.add("/css/theme.css")
-                it.stylesheets.add("/css/custom.css")
-                it.stylesheets.add("/css/highlight.css")
-                it.stylesheets.add("/css/code-area-ui.css")
+                it.stylesheets.add("/css/theme/dark/theme.css")
+                it.stylesheets.add("/css/theme/dark/custom.css")
+                it.stylesheets.add("/css/theme/dark/highlight.css")
+                it.stylesheets.add("/css/theme/dark/code-area-ui.css")
             }
             primaryStage.initModality(Modality.WINDOW_MODAL)
             primaryStage.initOwner(mainController.mainWindow())
