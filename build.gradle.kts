@@ -1,10 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val javaVersion = JavaVersion.VERSION_11
+val javaVersion = JavaVersion.VERSION_17
 
 plugins {
     base
-    kotlin("jvm") version "1.8.0"
+    kotlin("jvm") version "1.9.24"
 }
 
 allprojects {

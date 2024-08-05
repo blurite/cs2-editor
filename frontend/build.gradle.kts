@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "1.8.0"
-    id("org.openjfx.javafxplugin") version "0.0.13"
+    kotlin("jvm") version "1.9.24"
+    id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
 val gprUser: String? = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME") ?: System.getenv("GITHUB_ACTOR")
@@ -19,7 +19,7 @@ repositories {
 dependencies {
     implementation(projects.backend)
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("com.displee:disio:2.2")
     implementation("com.displee:rs-cache-library:6.8.1")
     implementation("org.fxmisc.richtext:richtextfx:0.10.9")
@@ -27,7 +27,7 @@ dependencies {
 }
 
 javafx {
-    version = "11"
+    version = "17"
     modules = listOf("javafx.controls", "javafx.fxml")
 }
 
